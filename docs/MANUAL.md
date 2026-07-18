@@ -1,6 +1,6 @@
 # 2E0LXY LoRa APRS iGate and Digipeater Manual
 
-Version 1.0.1 - Heltec WiFi LoRa 32 V3.2 - July 2026
+Version 1.1.0 - Heltec WiFi LoRa 32 V3.2 - July 2026
 
 ## 1. Purpose
 
@@ -91,6 +91,11 @@ Both ends of an RF link must use matching modulation parameters.
 - **Latitude/longitude:** fallback only when GPS is not used.
 - **GPS beacon:** uses the attached receiver after a valid fix.
 - **Position ambiguity:** reduces public coordinate precision.
+
+The live **GPS Receiver** panel separately reports hardware/UART detection
+and position-fix validity. It shows satellites, HDOP, coordinates, altitude,
+speed, course, GPS UTC time, NMEA checksum totals and data age. Saving the
+GPS enable switch restarts the iGate so the UART can be changed safely.
 
 For this third iGate, `2E0LXY-9` is used. Avoid SSID `-10` where it is
 already assigned to another station.

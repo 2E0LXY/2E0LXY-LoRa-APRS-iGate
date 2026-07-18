@@ -36,6 +36,8 @@ extern HardwareSerial   gpsSerial;
 extern TinyGPSPlus      gps;
 extern bool             stationCallsignIsValid;
 String                  distance, iGateBeaconPacket, iGateLoRaBeaconPacket;
+static bool             gpsDataReceived = false;
+static uint32_t         gpsLastByteMillis = 0;
 
 
 namespace GPS_Utils {
@@ -196,8 +198,18 @@ namespace GPS_Utils {
 
     void getData() {
         while (gpsSerial.available() > 0) {
+            gpsDataReceived = true;
+            gpsLastByteMillis = millis();
             gps.encode(gpsSerial.read());
         }
+    }
+
+    bool hasReceivedData() {
+        return gpsDataReceived;
+    }
+
+    uint32_t lastByteAgeMs() {
+        return gpsDataReceived ? millis() - gpsLastByteMillis : UINT32_MAX;
     }
 
 }

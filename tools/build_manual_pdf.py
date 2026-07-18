@@ -82,7 +82,7 @@ def page_decor(canvas, doc):
     canvas.drawString(16 * mm, height - 9.5 * mm, "2E0LXY LoRa APRS iGate")
     canvas.setFillColor(colors.white)
     canvas.setFont("Helvetica", 8)
-    canvas.drawRightString(width - 16 * mm, height - 9.5 * mm, "Heltec V3.2 - Firmware v1.0.0")
+    canvas.drawRightString(width - 16 * mm, height - 9.5 * mm, "Heltec V3.2 - Firmware v1.1.0")
     canvas.setStrokeColor(LINE)
     canvas.line(16 * mm, 13 * mm, width - 16 * mm, 13 * mm)
     canvas.setFillColor(MUTED)
@@ -109,7 +109,7 @@ cover = Table(
      [Paragraph("Installation, configuration and operation manual", styles["CoverSub"])],
      [Spacer(1, 5 * mm)],
      [Paragraph("Heltec WiFi LoRa 32 V3.2", styles["CoverSub"])],
-     [Paragraph("UK 439.9125 MHz profile - Firmware v1.0.0 - July 2026", styles["CoverSub"])]],
+     [Paragraph("UK 439.9125 MHz profile - Firmware v1.1.0 - July 2026", styles["CoverSub"])]],
     colWidths=[doc.width],
     rowHeights=[18 * mm, 17 * mm, 12 * mm, 10 * mm, 8 * mm, 8 * mm],
 )

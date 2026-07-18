@@ -77,6 +77,87 @@ async function refreshDeviceTime() {
 refreshDeviceTime();
 setInterval(refreshDeviceTime, 5000);
 
+const gpsValue = (id, value) => {
+    const element = document.getElementById(id);
+    if (element) element.textContent = value;
+};
+
+const gpsNumber = (value, digits = 1, suffix = "") =>
+    Number.isFinite(Number(value)) ? `${Number(value).toFixed(digits)}${suffix}` : "—";
+
+async function refreshGPS() {
+    const state = document.getElementById("gps-primary-state");
+    const stateText = document.getElementById("gps-state-text");
+    if (!state || !stateText) return;
+
+    try {
+        const response = await fetch("/gps.json", { cache: "no-store" });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        state.className = "gps-primary-state";
+
+        if (!data.supported) {
+            state.classList.add("is-error");
+            stateText.textContent = "GPS hardware is not supported by this firmware target";
+            gpsValue("gps-hardware", "Not supported");
+        } else if (!data.enabled) {
+            state.classList.add("is-off");
+            stateText.textContent = "GPS receiver disabled";
+            gpsValue("gps-hardware", data.detected ? "Detected · disabled" : "Disabled");
+        } else if (!data.detected) {
+            state.classList.add("is-error");
+            stateText.textContent = "No GPS serial data detected";
+            gpsValue("gps-hardware", "Not detected");
+        } else if (!data.streamCurrent) {
+            state.classList.add("is-error");
+            stateText.textContent = "GPS data stream has stopped";
+            gpsValue("gps-hardware", "Detected · no current data");
+        } else if (!data.fixValid) {
+            state.classList.add("is-good");
+            stateText.textContent = "GPS detected · waiting for satellite fix";
+            gpsValue("gps-hardware", "Detected");
+        } else {
+            state.classList.add("is-good");
+            stateText.textContent = "GPS detected · valid position fix";
+            gpsValue("gps-hardware", "Detected and receiving");
+        }
+
+        gpsValue("gps-serial", data.supported
+            ? `UART RX GPIO ${data.rxPin} · TX GPIO ${data.txPin} · ${data.baud} baud · ${data.charactersProcessed ?? 0} characters`
+            : "No GPS UART compiled");
+        gpsValue("gps-fix", data.fixValid ? "Valid" : "No fix");
+        gpsValue("gps-fix-age", data.fixValid && data.locationAgeMs < 4294967295
+            ? `Updated ${(data.locationAgeMs / 1000).toFixed(1)} seconds ago`
+            : "Waiting for a valid position");
+        gpsValue("gps-satellites", data.satellites ?? "—");
+        gpsValue("gps-hdop", data.hdop ? gpsNumber(data.hdop, 2) : "—");
+        gpsValue("gps-latitude", data.fixValid ? gpsNumber(data.latitude, 6, "°") : "—");
+        gpsValue("gps-longitude", data.fixValid ? gpsNumber(data.longitude, 6, "°") : "—");
+        gpsValue("gps-altitude", data.fixValid ? gpsNumber(data.altitudeMetres, 1, " m") : "—");
+        gpsValue("gps-speed", data.fixValid ? gpsNumber(data.speedKmph, 1) : "—");
+        gpsValue("gps-course", data.fixValid ? gpsNumber(data.courseDegrees, 1, "°") : "—");
+        gpsValue("gps-utc", data.utc ?? "—");
+        gpsValue("gps-stream", data.detected
+            ? `Last serial byte ${data.lastByteAgeMs < 4294967295 ? `${(data.lastByteAgeMs / 1000).toFixed(1)} seconds ago` : "unknown"}`
+            : "No NMEA data received since boot");
+        gpsValue("gps-passed", data.sentencesPassed ?? "—");
+        gpsValue("gps-failed", data.sentencesFailed ?? "—");
+
+        document.getElementById("gps-fix")?.closest(".gps-stat")?.classList.toggle("is-good", Boolean(data.fixValid));
+        document.getElementById("gps-fix")?.closest(".gps-stat")?.classList.toggle("is-waiting", Boolean(data.enabled && !data.fixValid));
+        document.getElementById("gps-hardware")?.closest(".gps-stat")?.classList.toggle("is-good", Boolean(data.detected && data.streamCurrent));
+        document.getElementById("gps-hardware")?.closest(".gps-stat")?.classList.toggle("is-error", Boolean(data.enabled && (!data.detected || !data.streamCurrent)));
+    } catch {
+        state.className = "gps-primary-state is-error";
+        stateText.textContent = "Could not read GPS status";
+        gpsValue("gps-hardware", "Status unavailable");
+        gpsValue("gps-serial", "The iGate did not answer /gps.json");
+    }
+}
+
+refreshGPS();
+setInterval(refreshGPS, 2000);
+
 function escapeHtml(value) {
     return String(value ?? "")
         .replaceAll("&", "&amp;")

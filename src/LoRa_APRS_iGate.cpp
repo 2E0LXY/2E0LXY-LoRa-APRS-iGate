@@ -45,7 +45,7 @@
 #endif
 
 
-String              versionDate             = "2E0LXY-1.0.1";
+String              versionDate             = "2E0LXY-1.1.0";
 String              versionNumber           = "3.2.4";
 Configuration       Config;
 WiFiClient          aprsIsClient;
@@ -124,6 +124,7 @@ void loop() {
 
         #ifdef HAS_GPS
             if (Config.beacon.gpsActive) {
+                GPS_Utils::getData();
                 if (millis() - gpsSatelliteTime > 5000) {
                     gpsInfoToggle = !gpsInfoToggle;
                     gpsSatelliteTime = millis();

@@ -13,6 +13,8 @@ iGate, WIDE1/WIDE2 digipeater and GPS-positioned station.
 - UK 439.9125 MHz LoRa APRS profile: SF12, 125 kHz, CR 4/5.
 - Simultaneous receive iGate and configurable WIDE1/WIDE2 digipeater.
 - GPS location on GPIO 47 RX and GPIO 48 TX at 9600 baud.
+- Live GPS dashboard with hardware detection, fix quality, NMEA statistics,
+  coordinates, altitude, speed, course and UTC time.
 - APRS-IS gating through `www.aprsnet.uk:14580`.
 - RF packet list and RF-only map with APRS position decoding.
 - RF diagnostics, duplicate suppression and strict CRC rejection.

@@ -17,9 +17,12 @@
  */
 
 #include <ArduinoJson.h>
+#include <TinyGPS++.h>
 #include <WiFi.h>
 #include <algorithm>
+#include "board_pinout.h"
 #include "configuration.h"
+#include "gps_utils.h"
 #include "lora_utils.h"
 #include "ntp_utils.h"
 #include "ota_utils.h"
@@ -32,6 +35,9 @@ extern Configuration               Config;
 extern uint32_t                    lastBeaconTx;
 extern std::vector<ReceivedPacket> receivedPackets;
 extern String                      versionDate;
+#ifdef HAS_GPS
+extern TinyGPSPlus                 gps;
+#endif
 
 extern const char web_index_html[] asm("_binary_data_embed_index_html_gz_start");
 extern const char web_index_html_end[] asm("_binary_data_embed_index_html_gz_end");
@@ -96,7 +102,7 @@ body{margin:0;background:#061321;color:#e8f3ff;font-family:system-ui,sans-serif}
 <div id="status" class="status">Contacting GitHub…</div><div class="actions"><button id="install" disabled>Install latest firmware</button><button id="check">Check again</button><a href="/update">Manual firmware upload</a></div>
 <div class="warning"><strong>Before updating:</strong> keep the iGate powered and connected to Wi-Fi. Configuration is retained. The device verifies the firmware write before rebooting.</div>
 </section></main><script>
-const current='v1.0.1',api='https://api.github.com/repos/2E0LXY/2E0LXY-LoRa-APRS-iGate/releases/latest';let asset=null;
+const current='v1.1.0',api='https://api.github.com/repos/2E0LXY/2E0LXY-LoRa-APRS-iGate/releases/latest';let asset=null;
 const el=id=>document.getElementById(id),parts=v=>v.replace(/^[^0-9]*/,'').split('.').map(n=>parseInt(n)||0);
 function newer(a,b){const x=parts(a),y=parts(b);for(let i=0;i<3;i++){if((x[i]||0)!==(y[i]||0))return(x[i]||0)>(y[i]||0)}return false}
 async function check(){asset=null;el('install').disabled=true;el('latest').textContent='Checking…';el('status').className='status';el('status').textContent='Contacting GitHub…';
@@ -141,6 +147,67 @@ el('check').onclick=check;el('install').onclick=install;check();
         data["synchronized"] = NTP_Utils::isTimeSet();
         data["server"] = Config.ntp.server;
         data["gmtCorrection"] = Config.ntp.gmtCorrection;
+
+        String buffer;
+        serializeJson(data, buffer);
+        AsyncWebServerResponse *response = request->beginResponse(200, "application/json", buffer);
+        response->addHeader("Cache-Control", "no-store");
+        request->send(response);
+    }
+
+    void handleGpsJson(AsyncWebServerRequest *request) {
+        if(Config.webadmin.active && !request->authenticate(Config.webadmin.username.c_str(), Config.webadmin.password.c_str()))
+            return request->requestAuthentication();
+
+        JsonDocument data;
+        #ifdef HAS_GPS
+            GPS_Utils::getData();
+            const bool receiving = GPS_Utils::hasReceivedData();
+            const uint32_t byteAge = GPS_Utils::lastByteAgeMs();
+            const bool streamCurrent = receiving && byteAge < 5000;
+
+            data["supported"] = true;
+            data["enabled"] = Config.beacon.gpsActive;
+            data["detected"] = receiving;
+            data["streamCurrent"] = streamCurrent;
+            data["fixValid"] = gps.location.isValid() && gps.location.age() < 10000;
+            data["latitude"] = gps.location.isValid() ? gps.location.lat() : 0.0;
+            data["longitude"] = gps.location.isValid() ? gps.location.lng() : 0.0;
+            data["altitudeMetres"] = gps.altitude.isValid() ? gps.altitude.meters() : 0.0;
+            data["speedKmph"] = gps.speed.isValid() ? gps.speed.kmph() : 0.0;
+            data["courseDegrees"] = gps.course.isValid() ? gps.course.deg() : 0.0;
+            data["satellites"] = gps.satellites.isValid() ? gps.satellites.value() : 0;
+            data["hdop"] = gps.hdop.isValid() ? gps.hdop.hdop() : 0.0;
+            data["locationAgeMs"] = gps.location.isValid() ? gps.location.age() : UINT32_MAX;
+            data["lastByteAgeMs"] = receiving ? byteAge : UINT32_MAX;
+            data["charactersProcessed"] = gps.charsProcessed();
+            data["sentencesPassed"] = gps.passedChecksum();
+            data["sentencesFailed"] = gps.failedChecksum();
+            data["utcValid"] = gps.date.isValid() && gps.time.isValid();
+            if (gps.date.isValid() && gps.time.isValid()) {
+                char utc[32];
+                snprintf(utc, sizeof(utc), "%04d-%02d-%02d %02d:%02d:%02d UTC",
+                    gps.date.year(), gps.date.month(), gps.date.day(),
+                    gps.time.hour(), gps.time.minute(), gps.time.second());
+                data["utc"] = utc;
+            } else {
+                data["utc"] = "Waiting for GPS time";
+            }
+            #ifdef GPS_BAUDRATE
+                data["baud"] = GPS_BAUDRATE;
+            #else
+                data["baud"] = 9600;
+            #endif
+            data["rxPin"] = GPS_TX;
+            data["txPin"] = GPS_RX;
+        #else
+            data["supported"] = false;
+            data["enabled"] = false;
+            data["detected"] = false;
+            data["streamCurrent"] = false;
+            data["fixValid"] = false;
+            data["utc"] = "GPS is not compiled for this board";
+        #endif
 
         String buffer;
         serializeJson(data, buffer);
@@ -595,6 +662,7 @@ el('check').onclick=check;el('install').onclick=install;check();
             server.on("/received-packets", HTTP_GET, handleHome);
             server.on("/status", HTTP_GET, handleStatus);
             server.on("/time.json", HTTP_GET, handleTimeJson);
+            server.on("/gps.json", HTTP_GET, handleGpsJson);
             server.on("/received-packets.json", HTTP_GET, handleReceivedPackets);
             server.on("/packet-map", HTTP_GET, handlePacketMap);
             server.on("/packet-map.js", HTTP_GET, handlePacketMapScript);

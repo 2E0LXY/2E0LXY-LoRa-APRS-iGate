@@ -265,6 +265,55 @@
                         </div>
                         <hr>
 
+                        <div class="row my-5 d-flex align-items-top gps-section">
+                            <div class="col-lg-3 col-sm-12">
+                                <h5>
+                                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                                        <circle cx="12" cy="12" r="3"></circle>
+                                        <circle cx="12" cy="12" r="8"></circle>
+                                        <path d="M12 2v3m0 14v3M2 12h3m14 0h3"></path>
+                                    </svg>
+                                    GPS Receiver
+                                </h5>
+                                <small>Live information received from the attached GNSS module. Hardware detection confirms that serial data is reaching the iGate; a position fix additionally requires a usable satellite lock.</small>
+                                <div class="gps-primary-state" id="gps-primary-state">
+                                    <span class="gps-state-dot"></span>
+                                    <span id="gps-state-text">Checking receiver…</span>
+                                </div>
+                            </div>
+                            <div class="col-lg-9 col-sm-12">
+                                <div class="gps-toolbar">
+                                    <div class="form-check form-switch">
+                                        <input
+                                            type="checkbox"
+                                            name="beacon.gpsActive"
+                                            id="beacon.gpsActive"
+                                            class="form-check-input"
+                                        />
+                                        <label for="beacon.gpsActive" class="form-label">Enable GPS receiver and use live position</label>
+                                    </div>
+                                    <span class="gps-refresh-note">Live data refreshes every 2 seconds</span>
+                                </div>
+                                <div class="feature-help">Saving this switch restarts the iGate so the GPS UART can be started or stopped safely. When disabled, the station uses the fallback latitude and longitude above.</div>
+
+                                <div class="gps-status-grid" aria-live="polite">
+                                    <div class="gps-stat gps-stat--wide"><span>Hardware</span><strong id="gps-hardware">Checking…</strong><small id="gps-serial">UART details unavailable</small></div>
+                                    <div class="gps-stat"><span>Position fix</span><strong id="gps-fix">—</strong><small id="gps-fix-age">No position received</small></div>
+                                    <div class="gps-stat"><span>Satellites</span><strong id="gps-satellites">—</strong><small>Satellites used/reported</small></div>
+                                    <div class="gps-stat"><span>HDOP</span><strong id="gps-hdop">—</strong><small>Lower is more accurate</small></div>
+                                    <div class="gps-stat gps-stat--coordinate"><span>Latitude</span><strong id="gps-latitude">—</strong></div>
+                                    <div class="gps-stat gps-stat--coordinate"><span>Longitude</span><strong id="gps-longitude">—</strong></div>
+                                    <div class="gps-stat"><span>Altitude</span><strong id="gps-altitude">—</strong><small>Metres above mean sea level</small></div>
+                                    <div class="gps-stat"><span>Speed</span><strong id="gps-speed">—</strong><small>km/h</small></div>
+                                    <div class="gps-stat"><span>Course</span><strong id="gps-course">—</strong><small>Degrees true</small></div>
+                                    <div class="gps-stat gps-stat--wide"><span>GPS UTC time</span><strong id="gps-utc">—</strong><small id="gps-stream">Waiting for receiver data</small></div>
+                                    <div class="gps-stat"><span>NMEA accepted</span><strong id="gps-passed">—</strong><small>Checksum passed</small></div>
+                                    <div class="gps-stat"><span>NMEA rejected</span><strong id="gps-failed">—</strong><small>Checksum failed</small></div>
+                                </div>
+                            </div>
+                        </div>
+                        <hr>
+
                         <div class="row my-5 d-flex align-items-top">
                             <div class="col-lg-3 col-sm-12">
                                 <h5>
@@ -658,21 +707,6 @@
                                             <option value="2">~1.1 km forced Ambiguity</option>
                                             <option value="3">~11 km forced Ambiguity</option>
                                         </select>
-                                    </div>
-                                </div>
-                                <div class="col-12 mt-3">
-                                    <div class="form-check form-switch">
-                                        <input
-                                            type="checkbox"
-                                            name="beacon.gpsActive"
-                                            id="beacon.gpsActive"
-                                            class="form-check-input"
-                                        />
-                                        <label
-                                            for="beacon.gpsActive"
-                                            class="form-label"
-                                            >Send Real-GPS Beacon <small>(Only for Boards with GPS Modules)</small>
-                                        </label>
                                     </div>
                                 </div>
                             </div>

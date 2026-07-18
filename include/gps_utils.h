@@ -35,6 +35,8 @@ namespace GPS_Utils {
 
     void    setup();
     void    getData();
+    bool    hasReceivedData();
+    uint32_t lastByteAgeMs();
 
 }
 
