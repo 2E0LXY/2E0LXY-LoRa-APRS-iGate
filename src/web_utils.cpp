@@ -35,6 +35,7 @@ extern Configuration               Config;
 extern uint32_t                    lastBeaconTx;
 extern std::vector<ReceivedPacket> receivedPackets;
 extern String                      versionDate;
+static std::vector<ReceivedPacket> aprsIsMapPackets;
 #ifdef HAS_GPS
 extern TinyGPSPlus                 gps;
 #endif
@@ -102,7 +103,7 @@ body{margin:0;background:#061321;color:#e8f3ff;font-family:system-ui,sans-serif}
 <div id="status" class="status">Contacting GitHub…</div><div class="actions"><button id="install" disabled>Install latest firmware</button><button id="check">Check again</button><a href="/update">Manual firmware upload</a></div>
 <div class="warning"><strong>Before updating:</strong> keep the iGate powered and connected to Wi-Fi. Configuration is retained. The device verifies the firmware write before rebooting.</div>
 </section></main><script>
-const current='v1.1.4',api='https://api.github.com/repos/2E0LXY/2E0LXY-LoRa-APRS-iGate/releases/latest';let asset=null;
+const current='v1.1.5',api='https://api.github.com/repos/2E0LXY/2E0LXY-LoRa-APRS-iGate/releases/latest';let asset=null;
 const el=id=>document.getElementById(id),parts=v=>v.replace(/^[^0-9]*/,'').split('.').map(n=>parseInt(n)||0);
 function newer(a,b){const x=parts(a),y=parts(b);for(let i=0;i<3;i++){if((x[i]||0)!==(y[i]||0))return(x[i]||0)>(y[i]||0)}return false}
 async function check(){asset=null;el('install').disabled=true;el('latest').textContent='Checking…';el('status').className='status';el('status').textContent='Contacting GitHub…';
@@ -258,9 +259,23 @@ el('check').onclick=check;el('install').onclick=install;check();
         for (int i = 0; i < receivedPackets.size(); i++) {
             data[i]["packetTime"] = receivedPackets[i].packetTime;
             data[i]["direction"]  = receivedPackets[i].direction;
+            data[i]["source"]     = "RF";
             data[i]["packet"]     = receivedPackets[i].packet;
             data[i]["RSSI"]       = receivedPackets[i].RSSI;
             data[i]["SNR"]        = receivedPackets[i].SNR;
+        }
+
+        if (request->hasParam("includeAprsIs", false)) {
+            size_t index = receivedPackets.size();
+            for (const ReceivedPacket& packet : aprsIsMapPackets) {
+                data[index]["packetTime"] = packet.packetTime;
+                data[index]["direction"]  = "IS";
+                data[index]["source"]     = "APRS-IS";
+                data[index]["packet"]     = packet.packet;
+                data[index]["RSSI"]       = 0;
+                data[index]["SNR"]        = 0;
+                index++;
+            }
         }
 
         String buffer;
@@ -270,6 +285,26 @@ el('check').onclick=check;el('install').onclick=install;check();
         AsyncWebServerResponse *response = request->beginResponse(200, "application/json", buffer);
         response->addHeader("Cache-Control", "no-store");
         request->send(response);
+    }
+
+    void recordAprsIsPacket(const String& packet) {
+        // Keep a small, map-focused APRS-IS buffer. A busy global feed must not
+        // displace RF history or consume excessive ESP32 heap.
+        const int infoIndex = packet.indexOf(':');
+        if (infoIndex < 0 || infoIndex + 1 >= packet.length()) return;
+        const char type = packet.charAt(infoIndex + 1);
+        if (type != '!' && type != '=' && type != '/' && type != '@' && type != ';') return;
+
+        if (aprsIsMapPackets.size() >= 30) {
+            aprsIsMapPackets.erase(aprsIsMapPackets.begin());
+        }
+        ReceivedPacket item;
+        item.packetTime = NTP_Utils::getFormatedTime();
+        item.direction = "IS";
+        item.packet = packet;
+        item.RSSI = 0;
+        item.SNR = 0;
+        aprsIsMapPackets.push_back(item);
     }
 
     void handlePacketMap(AsyncWebServerRequest *request) {
@@ -624,6 +659,46 @@ el('check').onclick=check;el('install').onclick=install;check();
             lastBeaconTx = 0;
 
             request->send(200, "text/plain", "Beacon will be sent in a while");
+        } else if (type == "apply-uk-lora-profile") {
+            Config.loramodule.rxActive = true;
+            Config.loramodule.rxFreq = 439912500;
+            Config.loramodule.rxSpreadingFactor = 12;
+            Config.loramodule.rxCodingRate4 = 5;
+            Config.loramodule.rxSignalBandwidth = 125000;
+            Config.loramodule.txActive = true;
+            Config.loramodule.txFreq = 439912500;
+            Config.loramodule.txSpreadingFactor = 12;
+            Config.loramodule.txCodingRate4 = 5;
+            Config.loramodule.txSignalBandwidth = 125000;
+            if (!Config.writeFile()) {
+                request->send(500, "text/plain", "Could not save UK LoRa profile");
+                return;
+            }
+            request->send(200, "text/plain", "UK LoRa profile saved; rebooting");
+            delay(250);
+            ESP.restart();
+        } else if (type == "set-fallback-location") {
+            if (!request->hasParam("latitude", false) || !request->hasParam("longitude", false)) {
+                request->send(400, "text/plain", "Latitude and longitude are required");
+                return;
+            }
+            const double latitude = request->getParam("latitude", false)->value().toDouble();
+            const double longitude = request->getParam("longitude", false)->value().toDouble();
+            if (latitude < -90.0 || latitude > 90.0 ||
+                longitude < -180.0 || longitude > 180.0 ||
+                (latitude == 0.0 && longitude == 0.0)) {
+                request->send(400, "text/plain", "Invalid fallback location");
+                return;
+            }
+            Config.beacon.latitude = latitude;
+            Config.beacon.longitude = longitude;
+            if (!Config.writeFile()) {
+                request->send(500, "text/plain", "Could not save fallback location");
+                return;
+            }
+            GPS_Utils::generateBeacons();
+            lastBeaconTx = 0;
+            request->send(200, "text/plain", "Fallback location saved; beacon queued");
         } else if (type == "reboot") {
             displayToggle(false);
             ESP.restart();

@@ -1,6 +1,6 @@
 # 2E0LXY LoRa APRS iGate and Digipeater Manual
 
-Version 1.1.4 - Heltec WiFi LoRa 32 V3.2 - July 2026
+Version 1.1.5 - Heltec WiFi LoRa 32 V3.2 - July 2026
 
 ## 1. Purpose
 
@@ -89,8 +89,10 @@ Both ends of an RF link must use matching modulation parameters.
 - **Beacon comment:** concise public station description.
 - **Beacon path:** path for this station's own RF beacon.
 - **Symbol:** map symbol for an iGate or digipeater.
-- **Latitude/longitude:** fallback only when GPS is not used.
-- **GPS beacon:** uses the attached receiver after a valid fix.
+- **Latitude/longitude:** safe fallback while GPS is disabled, unavailable
+  or waiting for a valid fix.
+- **GPS beacon:** automatically replaces the fallback with live coordinates
+  after a valid fix.
 - **Position ambiguity:** reduces public coordinate precision.
 
 The live **GPS Receiver** panel separately reports hardware/UART detection
@@ -144,9 +146,10 @@ collisions and reduces channel capacity.
 ## 11. RF packets and map
 
 The **Packets** page lists recently received RF packets with local NTP
-time, RSSI and SNR. The **RF Map** shows only packets received or
-transmitted by this radio and only when a supported APRS position is
-present. Internet-only APRS-IS traffic is excluded.
+time, RSSI and SNR. The map's **Show** selector provides **RF only**,
+**APRS-IS** and **All** views. RF history remains separate so a busy
+internet feed cannot displace packets actually heard or transmitted by
+the radio. Only packets containing a supported APRS position are mapped.
 
 ## 12. Diagnostics
 

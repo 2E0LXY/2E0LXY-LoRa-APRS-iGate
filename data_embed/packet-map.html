@@ -30,6 +30,7 @@
         .legend { position:absolute; z-index:500; top:16px; right:16px; background:var(--surface); padding:11px 13px; border:1px solid var(--line); border-radius:6px; box-shadow:0 4px 12px #0006; }
         .legend div { display:flex; align-items:center; gap:9px; margin:5px 0; }
         .dot,.diamond { width:13px; height:13px; display:inline-block; background:var(--blue); border:2px solid #fff; box-shadow:0 0 0 1px #1e66c6; border-radius:50%; }
+        .dot.is { background:#20c997; box-shadow:0 0 0 1px #168b6b; }
         .diamond { background:var(--amber); border-radius:1px; transform:rotate(45deg); box-shadow:0 0 0 1px #bd7900; }
         aside { border-left:1px solid var(--line); min-width:0; display:flex; flex-direction:column; }
         .aside-head { display:flex; align-items:center; padding:17px 18px; border-bottom:1px solid var(--line); }
@@ -43,6 +44,7 @@
         .frame { grid-column:1/-1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
         .dir { align-self:start; border-radius:4px; padding:2px 6px; font-size:11px; font-weight:800; color:#1765c1; background:#eaf3ff; border:1px solid #bdd7fb; }
         .dir.tx { color:#985e00; background:#fff4dd; border-color:#f2cb82; }
+        .dir.is { color:#0f6f58; background:#dff8f0; border-color:#8fd7c3; }
         .notice { margin-top:auto; padding:14px 18px; background:#07111d; border-top:1px solid var(--line); color:var(--muted); }
         .leaflet-div-icon { background:none; border:0; }
         .leaflet-tile-pane { filter:brightness(.72) invert(1) contrast(1.22) hue-rotate(180deg) saturate(.55); }
@@ -53,6 +55,7 @@
         .callsign-label::before { border-top-color:#6c757d !important; }
         .map-marker { width:16px; height:16px; background:var(--blue); border:2px solid white; box-shadow:0 1px 4px #0007; border-radius:50%; }
         .map-marker.tx { background:var(--amber); border-radius:2px; transform:rotate(45deg); }
+        .map-marker.is { background:#20c997; }
         @media (max-width:900px) {
             header { gap:16px; padding:0 14px; }
             header a:not([aria-current]) { display:none; }
@@ -79,6 +82,12 @@
 <main>
     <div class="toolbar">
         <h1>RF Packet Map</h1>
+        <label for="sourceFilter">Show</label>
+        <select id="sourceFilter">
+            <option value="rf" selected>RF only</option>
+            <option value="is">APRS-IS</option>
+            <option value="all">All</option>
+        </select>
         <label for="refreshRate">Auto-refresh</label>
         <select id="refreshRate"><option value="5000">5 sec</option><option value="10000" selected>10 sec</option><option value="30000">30 sec</option></select>
         <button id="refresh">Refresh now</button>
@@ -87,11 +96,11 @@
     <section class="layout">
         <div class="map-wrap">
             <div id="map" aria-label="Map of APRS packet positions"></div>
-            <div class="map-empty" id="mapEmpty">Waiting for an RF RX or TX packet containing a valid APRS position…</div>
-            <div class="legend"><div><span class="dot"></span> RX (Received)</div><div><span class="diamond"></span> TX (Transmitted)</div></div>
+            <div class="map-empty" id="mapEmpty">Waiting for a packet containing a valid APRS position…</div>
+            <div class="legend"><div><span class="dot"></span> RF RX</div><div><span class="diamond"></span> RF TX</div><div><span class="dot is"></span> APRS-IS</div></div>
         </div>
         <aside>
-            <div class="aside-head"><h2>RF Packet Activity</h2><span id="packetCount">0 packets</span></div>
+            <div class="aside-head"><h2 id="activityTitle">RF Packet Activity</h2><span id="packetCount">0 packets</span></div>
             <div id="packets"></div>
             <div class="notice" id="notice">Waiting for packet data…</div>
         </aside>

@@ -30,6 +30,7 @@
 #include "tnc_utils.h"
 #include "display.h"
 #include "utils.h"
+#include "web_utils.h"
 
 
 extern Configuration        Config;
@@ -323,6 +324,7 @@ namespace APRS_IS_Utils {
             if (packet.startsWith("#")) {
                 if (Config.digi.backupDigiMode) lastServerCheck = currentTime;
             } else {
+                WEB_Utils::recordAprsIsPacket(packet);
                 int doubleColonIndex = packet.indexOf("::");
                 if (Config.aprs_is.messagesToRF && doubleColonIndex > 0) {
                     String Sender = packet.substring(0, packet.indexOf(">"));
@@ -403,7 +405,6 @@ namespace APRS_IS_Utils {
                     String aprsisPacket = aprsIsClient.readStringUntil('\r');
                     aprsisPacket.trim();    // Serial.println(aprsisPacket);
                     processAPRSISPacket(aprsisPacket);
-                    lastRxTime = millis();
                 }
             }
         #endif

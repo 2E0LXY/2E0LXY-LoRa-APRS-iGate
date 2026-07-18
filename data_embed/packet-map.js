@@ -53,10 +53,11 @@ function callsign(frame) {
     return end > 0 ? frame.slice(0, end) : "Unknown";
 }
 
-function markerIcon(direction) {
+function markerIcon(direction, source) {
+    const markerClass = source === "APRS-IS" ? "is" : (direction === "TX" ? "tx" : "");
     return L.divIcon({
         className: "leaflet-div-icon",
-        html: `<div class="map-marker ${direction === "TX" ? "tx" : ""}"></div>`,
+        html: `<div class="map-marker ${markerClass}"></div>`,
         iconSize: [16, 16],
         iconAnchor: [8, 8],
     });
@@ -70,7 +71,15 @@ function addText(parent, className, value) {
 }
 
 function render(packets) {
-    packets = packets.filter((packet) => packet.direction === "RX" || packet.direction === "TX");
+    const mode = document.getElementById("sourceFilter").value;
+    packets = packets.filter((packet) => {
+        const source = packet.source || "RF";
+        if (mode === "rf") return source === "RF";
+        if (mode === "is") return source === "APRS-IS";
+        return source === "RF" || source === "APRS-IS";
+    });
+    document.getElementById("activityTitle").textContent =
+        mode === "rf" ? "RF Packet Activity" : (mode === "is" ? "APRS-IS Activity" : "All Packet Activity");
     markerLayer.clearLayers();
     const list = document.getElementById("packets");
     list.replaceChildren();
@@ -78,13 +87,14 @@ function render(packets) {
     const mappedCallsigns = new Set();
 
     [...packets].reverse().forEach((packet) => {
-        const direction = packet.direction === "TX" ? "TX" : "RX";
+        const source = packet.source || "RF";
+        const direction = source === "APRS-IS" ? "IS" : (packet.direction === "TX" ? "TX" : "RX");
         const position = parsePosition(packet.packet || "");
         const station = callsign(packet.packet || "");
         const row = document.createElement("div");
         row.className = "packet";
         addText(row, "call", station);
-        addText(row, `dir ${direction === "TX" ? "tx" : ""}`, direction);
+        addText(row, `dir ${direction === "TX" ? "tx" : (direction === "IS" ? "is" : "")}`, direction);
         const signal = direction === "RX" ? ` · ${packet.RSSI} dBm / ${packet.SNR} dB` : "";
         addText(row, "meta", `${packet.packetTime || "--:--:--"}${signal}`);
         addText(row, "frame", packet.packet || "");
@@ -93,7 +103,7 @@ function render(packets) {
             positioned++;
             if (!mappedCallsigns.has(station)) {
                 mappedCallsigns.add(station);
-                const marker = L.marker([position.lat, position.lon], { icon: markerIcon(direction) })
+                const marker = L.marker([position.lat, position.lon], { icon: markerIcon(direction, source) })
                     .bindTooltip(station, { permanent: true, direction: "top", offset: [0, -8], className: "callsign-label" })
                     .bindPopup(`<strong>${station}</strong><br>${direction} · ${packet.packetTime || ""}`);
                 marker.addTo(markerLayer);
@@ -114,9 +124,10 @@ function render(packets) {
         fitStations();
         hasFittedStations = true;
     }
+    const sourceLabel = mode === "rf" ? "RF" : (mode === "is" ? "APRS-IS" : "RF/APRS-IS");
     document.getElementById("notice").textContent = packets.length
         ? `${mappedCallsigns.size} callsign${mappedCallsigns.size === 1 ? "" : "s"} mapped · ${withoutPosition} packet${withoutPosition === 1 ? "" : "s"} without a supported APRS position`
-        : "No RF RX or TX packets have been recorded since the last reboot.";
+        : `No ${sourceLabel} packets have been recorded since the last reboot.`;
 }
 
 function fitStations() {
@@ -131,7 +142,7 @@ function fitStations() {
 async function refresh() {
     const status = document.getElementById("onlineStatus");
     try {
-        const response = await fetch("/received-packets.json", { cache: "no-store" });
+        const response = await fetch("/received-packets.json?includeAprsIs=1", { cache: "no-store" });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const packets = await response.json();
         render(Array.isArray(packets) ? packets : []);
@@ -152,6 +163,10 @@ function schedule() {
 
 document.getElementById("refresh").addEventListener("click", refresh);
 document.getElementById("refreshRate").addEventListener("change", schedule);
+document.getElementById("sourceFilter").addEventListener("change", () => {
+    hasFittedStations = false;
+    refresh();
+});
 document.getElementById("fit").addEventListener("click", () => {
     fitStations();
 });

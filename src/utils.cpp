@@ -158,7 +158,10 @@ namespace Utils {
             if (Config.beacon.gpsActive) {      // GPS activated
                 if (!gps.location.isValid()) {
                     GPS_Utils::getData();       // refresh GPS
-                    beaconUpdate = false;
+                    // Continue with the configured fallback position when the
+                    // receiver has no fix. Suppress only when neither source
+                    // can provide a usable location.
+                    if (!configLocationIsValid) beaconUpdate = false;
                 }
             } else {                            // GPS not active: use saved data in Config
                 if (!configLocationIsValid) beaconUpdate = false;

@@ -35,6 +35,7 @@ namespace WEB_Utils {
     void handleScript(AsyncWebServerRequest *request);
     void handleBootstrapStyle(AsyncWebServerRequest *request);
     void handleBootstrapScript(AsyncWebServerRequest *request);
+    void recordAprsIsPacket(const String& packet);
 
     void setup();
 
