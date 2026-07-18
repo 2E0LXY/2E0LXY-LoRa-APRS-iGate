@@ -1,6 +1,6 @@
 # 2E0LXY LoRa APRS iGate and Digipeater Manual
 
-Version 1.1.0 - Heltec WiFi LoRa 32 V3.2 - July 2026
+Version 1.1.1 - Heltec WiFi LoRa 32 V3.2 - July 2026
 
 ## 1. Purpose
 

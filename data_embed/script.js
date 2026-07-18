@@ -10,7 +10,6 @@ const featureHelp = {
     "beacon.symbol": "The APRS map symbol that represents this iGate or digipeater.",
     "beacon.latitude": "Fallback latitude used only when live GPS positioning is disabled.",
     "beacon.longitude": "Fallback longitude used only when live GPS positioning is disabled.",
-    "beacon.gpsActive": "Uses the attached GPS receiver for live beacon coordinates; a valid satellite fix is required before transmitting.",
     "startupDelay": "Waits after boot so the router has time to start before this device connects.",
     "aprs_is.active": "Connects to APRS-IS to gate valid LoRa APRS packets onto the worldwide APRS network.",
     "aprs_is.messagesToRF": "Allows addressed APRS-IS messages to be transmitted onto RF when routing rules permit.",
@@ -45,12 +44,15 @@ const featureHelp = {
 for (const [id, explanation] of Object.entries(featureHelp)) {
     const control = document.getElementById(id);
     if (!control) continue;
-    const controlGroup = control.closest(".input-group") || control.parentElement;
-    if (controlGroup.nextElementSibling?.classList.contains("feature-help")) continue;
+    const helpAnchor =
+        control.closest(".input-group") ||
+        control.closest(".form-check") ||
+        control;
+    if (helpAnchor.nextElementSibling?.classList.contains("feature-help")) continue;
     const help = document.createElement("div");
     help.className = "feature-help";
     help.textContent = explanation;
-    controlGroup.insertAdjacentElement("afterend", help);
+    helpAnchor.insertAdjacentElement("afterend", help);
 }
 
 async function refreshDeviceTime() {
