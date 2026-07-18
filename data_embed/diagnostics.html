@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en" data-bs-theme="dark">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>RF Diagnostics · 2E0LXY</title>
+  <link rel="stylesheet" href="/bootstrap.css">
+  <link rel="stylesheet" href="/style.css">
+  <style>
+    body{background:#07111d}.navbar{background:#0c1b2a;border-bottom:1px solid #28435a}
+    .metric{background:#0c1b2a;border:1px solid #28435a;border-radius:.85rem;padding:1rem;height:100%}
+    .metric small{color:#adb5bd}.metric strong{display:block;font-size:1.65rem;margin-top:.25rem}
+    .table-wrap{background:#0c1b2a;border:1px solid #28435a;border-radius:.85rem;overflow:auto}
+    code{color:#9ec5fe}.safe{color:#75b798}.warn{color:#ffda6a}
+  </style>
+</head>
+<body>
+<div class="app-header">
+  <div class="app-header__top"><a class="app-brand" href="/"><strong>2E0LXY</strong><span>ESP32 Heltec LoRa APRS iGate</span></a><span class="online-state"><span></span>Online</span></div>
+  <div class="app-nav">
+    <a class="app-nav__button icon-blue" href="/">⚙ <span>Configuration</span></a>
+    <a class="app-nav__button icon-violet" href="/received-packets">▤ <span>Packets</span></a>
+    <a class="app-nav__button icon-green" href="/packet-map">⌖ <span>RF Map</span></a>
+    <a class="app-nav__button active icon-amber" href="/diagnostics" aria-current="page">⌁ <span>Diagnostics</span></a>
+    <a class="app-nav__button icon-cyan" href="/firmware-update">⇧ <span>Update</span></a>
+    <button class="app-nav__button icon-red" type="button" onclick="fetch('/action?type=reboot',{method:'POST'})">⏻ <span>Reboot</span></button>
+  </div>
+</div>
+<main class="container py-4">
+  <div class="d-flex align-items-center mb-3"><h1 class="h3 mb-0">RF Diagnostics</h1><span class="ms-auto text-secondary" id="updated">Loading…</span></div>
+  <div class="row g-3 mb-4" id="metrics"></div>
+  <div class="row g-3 mb-4">
+    <div class="col-lg-6"><div class="metric"><small>CRC recovery policy</small><strong class="safe">Reject only</strong><p class="mb-0">Damaged LoRa frames are counted but never repaired, gated or retransmitted.</p></div></div>
+    <div class="col-lg-6"><div class="metric"><small>Secondary LoRa profile</small><strong id="scanState">Disabled</strong><p class="mb-0" id="scanDetail">Primary UK profile remains active continuously.</p></div></div>
+  </div>
+  <h2 class="h4">Heard stations</h2>
+  <div class="table-wrap"><table class="table table-dark table-striped mb-0">
+    <thead><tr><th>Callsign</th><th>Packets</th><th>Last heard</th><th>RSSI last / avg / range</th><th>SNR last / avg / range</th><th>Freq. error</th></tr></thead>
+    <tbody id="stations"></tbody>
+  </table></div>
+</main>
+<script src="/diagnostics.js"></script>
+</body>
+</html>

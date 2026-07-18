@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>RF Map · 2E0LXY</title>
+    <link rel="stylesheet" href="/style.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+    <style>
+        :root { color-scheme:dark; --navy:#f5f8fc; --muted:#9eb0c1; --line:#28435a; --surface:#0c1b2a; --page:#07111d; --blue:#2787ff; --amber:#ffad0a; }
+        * { box-sizing: border-box; }
+        body { margin:0; font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif; color:var(--navy); background:var(--page); }
+        header { height:62px; display:flex; align-items:center; gap:28px; padding:0 24px; background:var(--surface); border-bottom:1px solid var(--line); }
+        header strong { font-size:19px; letter-spacing:-.02em; }
+        header a { color:var(--muted); text-decoration:none; }
+        header a[aria-current] { color:var(--navy); font-weight:700; border-bottom:3px solid var(--blue); height:62px; display:flex; align-items:center; }
+        .status { margin-left:auto; display:flex; align-items:center; gap:8px; color:#16743a; }
+        .status::before { content:""; width:9px; height:9px; border-radius:50%; background:#25a244; }
+        main { padding:22px; max-width:1800px; margin:auto; }
+        .toolbar { display:flex; align-items:center; gap:12px; margin-bottom:16px; }
+        h1 { margin:0 auto 0 0; font-size:28px; letter-spacing:-.03em; }
+        button,select { border:1px solid var(--line); border-radius:8px; background:#102335; color:var(--navy); padding:9px 12px; font:600 13px inherit; }
+        button { cursor:pointer; }
+        .layout { min-height:calc(100vh - 138px); display:grid; grid-template-columns:minmax(0,2.35fr) minmax(320px,1fr); background:var(--surface); border:1px solid var(--line); }
+        .map-wrap { position:relative; min-height:620px; }
+        #map { position:absolute; inset:0; }
+        .map-empty { position:absolute; inset:0; z-index:600; display:grid; place-items:center; padding:24px; text-align:center; color:var(--muted); background:var(--surface); }
+        .map-empty[hidden] { display:none; }
+        .legend { position:absolute; z-index:500; top:16px; right:16px; background:var(--surface); padding:11px 13px; border:1px solid var(--line); border-radius:6px; box-shadow:0 4px 12px #0006; }
+        .legend div { display:flex; align-items:center; gap:9px; margin:5px 0; }
+        .dot,.diamond { width:13px; height:13px; display:inline-block; background:var(--blue); border:2px solid #fff; box-shadow:0 0 0 1px #1e66c6; border-radius:50%; }
+        .diamond { background:var(--amber); border-radius:1px; transform:rotate(45deg); box-shadow:0 0 0 1px #bd7900; }
+        aside { border-left:1px solid var(--line); min-width:0; display:flex; flex-direction:column; }
+        .aside-head { display:flex; align-items:center; padding:17px 18px; border-bottom:1px solid var(--line); }
+        .aside-head h2 { margin:0; font-size:16px; }
+        #packetCount { margin-left:auto; color:var(--muted); }
+        #packets { overflow:auto; }
+        .packet { display:grid; grid-template-columns:1fr auto; gap:5px 12px; padding:11px 18px; border-bottom:1px solid var(--line); cursor:pointer; }
+        .packet:hover { background:#343a40; }
+        .call { font-weight:750; }
+        .meta,.frame { color:var(--muted); font-size:12px; }
+        .frame { grid-column:1/-1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .dir { align-self:start; border-radius:4px; padding:2px 6px; font-size:11px; font-weight:800; color:#1765c1; background:#eaf3ff; border:1px solid #bdd7fb; }
+        .dir.tx { color:#985e00; background:#fff4dd; border-color:#f2cb82; }
+        .notice { margin-top:auto; padding:14px 18px; background:#07111d; border-top:1px solid var(--line); color:var(--muted); }
+        .leaflet-div-icon { background:none; border:0; }
+        .leaflet-tile-pane { filter:brightness(.72) invert(1) contrast(1.22) hue-rotate(180deg) saturate(.55); }
+        .leaflet-control-zoom a { color:#f8f9fa; background:#2b3035; border-color:#495057; }
+        .leaflet-control-attribution { color:#adb5bd; background:#212529d9 !important; }
+        .leaflet-control-attribution a { color:#78b7ff; }
+        .callsign-label { color:#f8f9fa; background:#212529e8; border:1px solid #6c757d; box-shadow:0 1px 4px #0008; font-weight:700; }
+        .callsign-label::before { border-top-color:#6c757d !important; }
+        .map-marker { width:16px; height:16px; background:var(--blue); border:2px solid white; box-shadow:0 1px 4px #0007; border-radius:50%; }
+        .map-marker.tx { background:var(--amber); border-radius:2px; transform:rotate(45deg); }
+        @media (max-width:900px) {
+            header { gap:16px; padding:0 14px; }
+            header a:not([aria-current]) { display:none; }
+            main { padding:12px; }
+            .toolbar { flex-wrap:wrap; }
+            .layout { grid-template-columns:1fr; }
+            .map-wrap { min-height:52vh; }
+            aside { border-left:0; border-top:1px solid var(--line); max-height:46vh; }
+        }
+    </style>
+</head>
+<body>
+<div class="app-header">
+  <div class="app-header__top"><a class="app-brand" href="/"><strong>2E0LXY</strong><span>ESP32 Heltec LoRa APRS iGate</span></a><span class="online-state" id="onlineStatus"><span></span>Online</span></div>
+  <div class="app-nav">
+    <a class="app-nav__button icon-blue" href="/">⚙ <span>Configuration</span></a>
+    <a class="app-nav__button icon-violet" href="/received-packets">▤ <span>Packets</span></a>
+    <a class="app-nav__button active icon-green" href="/packet-map" aria-current="page">⌖ <span>RF Map</span></a>
+    <a class="app-nav__button icon-amber" href="/diagnostics">⌁ <span>Diagnostics</span></a>
+    <a class="app-nav__button icon-cyan" href="/firmware-update">⇧ <span>Update</span></a>
+    <button class="app-nav__button icon-red" type="button" onclick="fetch('/action?type=reboot',{method:'POST'})">⏻ <span>Reboot</span></button>
+  </div>
+</div>
+<main>
+    <div class="toolbar">
+        <h1>RF Packet Map</h1>
+        <label for="refreshRate">Auto-refresh</label>
+        <select id="refreshRate"><option value="5000">5 sec</option><option value="10000" selected>10 sec</option><option value="30000">30 sec</option></select>
+        <button id="refresh">Refresh now</button>
+        <button id="fit">Fit map</button>
+    </div>
+    <section class="layout">
+        <div class="map-wrap">
+            <div id="map" aria-label="Map of APRS packet positions"></div>
+            <div class="map-empty" id="mapEmpty">Waiting for an RF RX or TX packet containing a valid APRS position…</div>
+            <div class="legend"><div><span class="dot"></span> RX (Received)</div><div><span class="diamond"></span> TX (Transmitted)</div></div>
+        </div>
+        <aside>
+            <div class="aside-head"><h2>RF Packet Activity</h2><span id="packetCount">0 packets</span></div>
+            <div id="packets"></div>
+            <div class="notice" id="notice">Waiting for packet data…</div>
+        </aside>
+    </section>
+</main>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="/packet-map.js"></script>
+</body>
+</html>

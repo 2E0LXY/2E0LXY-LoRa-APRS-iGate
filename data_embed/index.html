@@ -1,0 +1,2277 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>2E0LXY · LoRa APRS iGate</title>
+        <link rel="stylesheet" href="/bootstrap.css" />
+        <link rel="stylesheet" href="/style.css" />
+        <link rel="icon" href="/favicon.png" type="image/x-icon">
+    </head>
+    <body class="bg-body-tertiary">
+        <input type="file" accept="text/json,.json" style="display: none" />
+        <form autocomplete="off" action="/configuration.json" method="POST">
+            <nav class="app-header sticky-top" aria-label="Primary navigation">
+                <div class="app-header__top">
+                    <a class="app-brand" href="/"><strong>2E0LXY</strong><span>ESP32 Heltec LoRa APRS iGate</span></a>
+                    <span class="online-state"><span></span>Online</span>
+                </div>
+                <div class="app-nav">
+                    <a class="app-nav__button active icon-blue" href="/" aria-current="page"><svg viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 12h2m4 0h10M4 17h10m4 0h2"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="12" r="2"/><circle cx="16" cy="17" r="2"/></svg><span>Configuration</span></a>
+                    <a class="app-nav__button icon-violet" href="/received-packets"><svg viewBox="0 0 24 24"><path d="M5 4h14v16H5zM8 8h8M8 12h8M8 16h5"/></svg><span>Packets</span></a>
+                    <a class="app-nav__button icon-green" href="/packet-map"><svg viewBox="0 0 24 24"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3zM9 3v15m6-12v15"/></svg><span>RF Map</span></a>
+                    <a class="app-nav__button icon-amber" href="/diagnostics"><svg viewBox="0 0 24 24"><path d="M4 18V9m5 9V5m6 13v-7m5 7V3"/></svg><span>Diagnostics</span></a>
+                    <a class="app-nav__button icon-cyan" href="/firmware-update"><svg viewBox="0 0 24 24"><path d="M12 3v12m-4-4 4 4 4-4M4 19h16"/></svg><span>Update</span></a>
+                    <button class="app-nav__button icon-pink" type="button" id="backup"><svg viewBox="0 0 24 24"><path d="M5 4h12l2 2v14H5zM8 4v6h8V4M8 16h8"/></svg><span>Backup</span></button>
+                    <button class="app-nav__button icon-red" type="button" id="reboot"><svg viewBox="0 0 24 24"><path d="M12 3v9m6.4-5.4A8 8 0 1 1 5.6 6.6"/></svg><span>Reboot</span></button>
+                    <button class="save-button" type="submit"><svg viewBox="0 0 24 24"><path d="M5 4h12l2 2v14H5zM8 4v6h8V4M8 16h8"/></svg><span>Save changes</span></button>
+                    <button type="button" id="restore" class="visually-hidden">Restore configuration</button>
+                </div>
+            </nav>
+            
+            <div class="container d-none" id="received-packets">
+                <div class="row my-5 d-flex align-items-top">
+                    <div class="col-12">
+                        <h3>Last 10 received packets list</h3>
+                        <table class="table mt-4">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Time</th>
+                                    <th scope="col">Frame</th>
+                                    <th scope="col">RSSI</th>
+                                    <th scope="col">SNR</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                
+                            </tbody>
+                        </table>
+                        <span>List refresh automatically every 15 seconds.</span><br>
+                        <small>(Local Time is NTP-Time adjusted with your GMT Offset)</small>
+                    </div>
+                </div>
+                <hr>
+            </div>
+        
+            <div class="container" id="configuration">
+                <main>
+                    <div class="col-10 my-5 mx-auto">
+                        <div class="row my-5 d-flex align-items-top">
+                            <div class="col-lg-3 col-sm-12">
+                                <h5>
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="20"
+                                        height="20"
+                                        fill="currentColor"
+                                        class="bi bi-person-circle"
+                                        viewBox="0 0 16 16"
+                                    >
+                                        <path
+                                            d="M11 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0"
+                                        />
+                                        <path
+                                            fill-rule="evenodd"
+                                            d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8m8-7a7 7 0 0 0-5.468 11.37C3.242 11.226 4.805 10 8 10s4.757 1.225 5.468 2.37A7 7 0 0 0 8 1"
+                                        />
+                                    </svg>
+                                    Station
+                                </h5>
+                                <small
+                                    >Add your Ham callsign and SSID. 
+                                    <br>
+                                    <br>
+                                    You can leave a comment describing your station. 
+                                    <br>
+                                    <br>
+                                    In the bottom there is a field for personal note that can only be seen in WEB GUI.
+                                </small>
+                            </div>
+                            <div class="col-lg-9 col-sm-12">
+                                <div class="row">
+                                    <div class="col-6">
+                                        <label for="callsign" class="form-label"
+                                            >Callsign - SSID</label
+                                        >
+                                        <input
+                                            type="text"
+                                            name="callsign"
+                                            id="callsign"
+                                            class="form-control"
+                                            placeholder="N0CALL-10"
+                                            required=""
+                                            oninput="this.value = this.value.toUpperCase();"
+                                        />
+                                    </div>
+                                    <div class="col-6">
+                                        <label for="tacticalCallsign" class="form-label"
+                                            >Tactical Callsign</label
+                                        >
+                                        <input
+                                            type="text"
+                                            name="tacticalCallsign"
+                                            id="tacticalCallsign"
+                                            class="form-control"
+                                            placeholder=""
+                                            oninput="this.value = this.value.toUpperCase();"
+                                        />
+                                    </div>
+                                    <div class="col-12 mt-3">
+                                        <label
+                                            for="beacon.comment"
+                                            class="form-label"
+                                            >Beacon Comment</label
+                                        >
+                                        <input
+                                            type="text"
+                                            name="beacon.comment"
+                                            id="beacon.comment"
+                                            class="form-control"
+                                            placeholder=""
+                                        />
+                                    </div>
+                                    <div class="col-12 mt-3">
+                                        <label
+                                            for="beacon.path"
+                                            class="form-label"
+                                            >Beacon Path</label
+                                        >
+                                        <input
+                                            type="text"
+                                            name="beacon.path"
+                                            id="beacon.path"
+                                            class="form-control"
+                                            placeholder="WIDE1-1"
+                                        />
+                                    </div>
+                                    <div class="col-8 mt-3">
+                                        <input
+                                            type="hidden"
+                                            name="beacon.overlay"
+                                            id="beacon.overlay"
+                                            class="form-control"
+                                            size="1"
+                                            required=""
+                                        />
+                                        <input
+                                            type="hidden"
+                                            name="beacon.symbol"
+                                            id="beacon.symbol"
+                                            class="form-control"
+                                            size="1"
+                                            required=""
+                                        />
+                                        <label
+                                            for="action.symbol"
+                                            class="form-label"
+                                            >Symbol</label
+                                        >
+                                        <select
+                                            class="form-select form-select"
+                                            name="action.symbol"
+                                            id="action.symbol"
+                                        >
+                                            <option value="L#">Green Star with L - Digipeater</option>
+                                            <option value="L_">Blue Circle with L - Station with Wx Data</option>
+                                            <option value="L&">Black Diamond with L - Rx (only) iGate</option>
+                                            <option value="La" selected>Red Diamond with L - Rx+Tx iGate</option>
+                                        </select>
+                                    </div>
+                                    <div
+                                        class="col-4 mt-3"
+                                        style="text-align: center"
+                                    >
+                                        <img
+                                            src=""
+                                            width="60"
+                                            height="60"
+                                            class="me-2"
+                                        />
+                                    </div>
+                                    <div class="col-6 mt-3">
+                                        <label
+                                            for="beacon.latitude"
+                                            class="form-label"
+                                            >Latitude</label
+                                        >
+                                        <input
+                                            type="text"
+                                            name="beacon.latitude"
+                                            id="beacon.latitude"
+                                            placeholder="-33.440"
+                                            class="form-control"
+                                        />
+                                    </div>
+                                    <div class="col-6 mt-3">
+                                        <label
+                                            for="beacon.longitude"
+                                            class="form-label"
+                                            >Longitude</label
+                                        >
+                                        <input
+                                            type="text"
+                                            name="beacon.longitude"
+                                            id="beacon.longitude"
+                                            placeholder="-70.613"
+                                            class="form-control"
+                                        />
+                                    </div>
+                                    <div class="col-12 mt-3">
+                                        <label
+                                            for="personalNote"
+                                            class="form-label"
+                                            >Personal Note</label
+                                        >
+                                        <input
+                                            type="text"
+                                            name="personalNote"
+                                            id="personalNote"
+                                            class="form-control"
+                                            placeholder="Describe here your Station"
+                                        />
+                                    </div>
+                                    <div class="col-12 mt-3">
+                                        <div class="form-check form-switch">
+                                            <input
+                                                type="checkbox"
+                                                name="beacon.statusActive"
+                                                id="beacon.statusActive"
+                                                class="form-check-input"
+                                            />
+                                            <label
+                                                for="beacon.statusActive"
+                                                class="form-label"
+                                                >Send Status at each Boot</label
+                                            >
+                                        </div>
+                                    </div>
+                                    <div class="col-12">
+                                        <label
+                                            for="beacon.statusPacket"
+                                            class="form-label"
+                                            >Status</label
+                                        >
+                                        <input
+                                            type="text"
+                                            name="beacon.statusPacket"
+                                            id="beacon.statusPacket"
+                                            class="form-control"
+                                            placeholder="Custom Status"
+                                            value=""
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <hr>
+
+                        <div class="row my-5 d-flex align-items-top">
+                            <div class="col-lg-3 col-sm-12">
+                                <h5>
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="20"
+                                        height="20"
+                                        fill="currentColor"
+                                        class="bi bi-router-fill"
+                                        viewBox="0 0 16 16"
+                                    >
+                                        <path
+                                            d="M5.525 3.025a3.5 3.5 0 0 1 4.95 0 .5.5 0 1 0 .707-.707 4.5 4.5 0 0 0-6.364 0 .5.5 0 0 0 .707.707"
+                                        />
+                                        <path
+                                            d="M6.94 4.44a1.5 1.5 0 0 1 2.12 0 .5.5 0 0 0 .708-.708 2.5 2.5 0 0 0-3.536 0 .5.5 0 0 0 .707.707Z"
+                                        />
+                                        <path
+                                            d="M2.974 2.342a.5.5 0 1 0-.948.316L3.806 8H1.5A1.5 1.5 0 0 0 0 9.5v2A1.5 1.5 0 0 0 1.5 13H2a.5.5 0 0 0 .5.5h2A.5.5 0 0 0 5 13h6a.5.5 0 0 0 .5.5h2a.5.5 0 0 0 .5-.5h.5a1.5 1.5 0 0 0 1.5-1.5v-2A1.5 1.5 0 0 0 14.5 8h-2.306l1.78-5.342a.5.5 0 1 0-.948-.316L11.14 8H4.86zM2.5 11a.5.5 0 1 1 0-1 .5.5 0 0 1 0 1m4.5-.5a.5.5 0 1 1 1 0 .5.5 0 0 1-1 0m2.5.5a.5.5 0 1 1 0-1 .5.5 0 0 1 0 1m1.5-.5a.5.5 0 1 1 1 0 .5.5 0 0 1-1 0m2 0a.5.5 0 1 1 1 0 .5.5 0 0 1-1 0"
+                                        />
+                                        <path
+                                            d="M8.5 5.5a.5.5 0 1 1-1 0 .5.5 0 0 1 1 0"
+                                        />
+                                    </svg>
+                                    WiFi Access
+                                </h5>
+                                <small
+                                    >Add all Wi-Fi Networks intended to be used.</small
+                                >
+                            </div>
+                            <div class="col-lg-9 col-sm-12">
+                                <input
+                                    type="hidden"
+                                    name="wifi.APs"
+                                    id="wifi.APs"
+                                />
+
+                                <div class="list-networks"></div>
+
+                                <div class="card border-secondary mb-3">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <button type="button" class="btn btn-outline-info" id="wifi-scan">
+                                                Scan nearby Wi-Fi
+                                            </button>
+                                            <span class="text-secondary" id="wifi-scan-status" aria-live="polite"></span>
+                                        </div>
+                                        <div class="row g-2 mt-2 d-none" id="wifi-scan-result">
+                                            <div class="col-md-6">
+                                                <label for="wifi-scan-ssid" class="form-label">Network</label>
+                                                <select class="form-select" id="wifi-scan-ssid"></select>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label for="wifi-scan-password" class="form-label">Password</label>
+                                                <input type="password" class="form-control" id="wifi-scan-password"
+                                                       autocomplete="new-password" placeholder="Wi-Fi password">
+                                            </div>
+                                            <div class="col-md-2 d-flex align-items-end">
+                                                <button type="button" class="btn btn-primary w-100" id="wifi-scan-add">Add</button>
+                                            </div>
+                                            <small class="text-secondary">Select a network, enter its password, click Add, then use Save above.</small>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row new">
+                                    <div class="d-grid gap-2">
+                                        <button
+                                            type="button"
+                                            class="btn btn-outline-primary"
+                                            data-toggle="collapse"
+                                            data-target="#add-ap"
+                                            aria-expanded="false"
+                                            aria-controls="add-ap"
+                                        >
+                                            Add network
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="col-6 mt-3">
+                                    <label
+                                        for="startupDelay"
+                                        class="form-label"
+                                        >Startup Delay<small>(To Allow Router/Modem to start WiFiAP before connection)</small></label
+                                    >
+                                    <div class="input-group">
+                                        <input
+                                            type="number"
+                                            name="startupDelay"
+                                            id="startupDelay"
+                                            placeholder="0"
+                                            class="form-control"
+                                            step="1"
+                                            min="0"
+                                            max="5"
+                                        />
+                                        <span class="input-group-text"
+                                            >minutes</span
+                                        >
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <hr>
+
+                        <div class="row my-5 d-flex align-items-top">
+                            <div class="col-lg-3 col-sm-12">
+                                <h5>
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="20"
+                                        height="20"
+                                        fill="currentColor"
+                                        class="bi bi-database-fill"
+                                        viewBox="0 0 16 16"
+                                    >
+                                        <path
+                                            d="M3.904 1.777C4.978 1.289 6.427 1 8 1s3.022.289 4.096.777C13.125 2.245 14 2.993 14 4s-.875 1.755-1.904 2.223C11.022 6.711 9.573 7 8 7s-3.022-.289-4.096-.777C2.875 5.755 2 5.007 2 4s.875-1.755 1.904-2.223"
+                                        />
+                                        <path
+                                            d="M2 6.161V7c0 1.007.875 1.755 1.904 2.223C4.978 9.71 6.427 10 8 10s3.022-.289 4.096-.777C13.125 8.755 14 8.007 14 7v-.839c-.457.432-1.004.751-1.49.972C11.278 7.693 9.682 8 8 8s-3.278-.307-4.51-.867c-.486-.22-1.033-.54-1.49-.972"
+                                        />
+                                        <path
+                                            d="M2 9.161V10c0 1.007.875 1.755 1.904 2.223C4.978 12.711 6.427 13 8 13s3.022-.289 4.096-.777C13.125 11.755 14 11.007 14 10v-.839c-.457.432-1.004.751-1.49.972-1.232.56-2.828.867-4.51.867s-3.278-.307-4.51-.867c-.486-.22-1.033-.54-1.49-.972"
+                                        />
+                                        <path
+                                            d="M2 12.161V13c0 1.007.875 1.755 1.904 2.223C4.978 15.711 6.427 16 8 16s3.022-.289 4.096-.777C13.125 14.755 14 14.007 14 13v-.839c-.457.432-1.004.751-1.49.972-1.232.56-2.828.867-4.51.867s-3.278-.307-4.51-.867c-.486-.22-1.033-.54-1.49-.972"
+                                        />
+                                    </svg>
+                                    APRS-IS
+                                </h5>
+                                <small
+                                    >Connect this iGate to the worldwide
+                                    APRS network.</small
+                                >
+                            </div>
+                            <div class="col-lg-9 col-sm-12">
+                                <div class="row">
+                                    <div class="col-12">
+                                        <div class="form-check form-switch">
+                                            <input
+                                                type="checkbox"
+                                                name="aprs_is.active"
+                                                id="aprs_is.active"
+                                                class="form-check-input"
+                                            />
+                                            <label
+                                                for="aprs_is.active"
+                                                class="form-label"
+                                                >Enable APRS-IS
+                                                connection</label
+                                            >
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="form-check form-switch">
+                                            <input
+                                                type="checkbox"
+                                                name="aprs_is.messagesToRF"
+                                                id="aprs_is.messagesToRF"
+                                                class="form-check-input"
+                                            />
+                                            <label
+                                                for="aprs_is.messagesToRF"
+                                                class="form-label"
+                                                >Gate APRS-IS Messages to
+                                                RF</label
+                                            >
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="form-check form-switch">
+                                            <input
+                                                type="checkbox"
+                                                name="aprs_is.objectsToRF"
+                                                id="aprs_is.objectsToRF"
+                                                class="form-check-input"
+                                            />
+                                            <label
+                                                for="aprs_is.objectsToRF"
+                                                class="form-label"
+                                                >Gate APRS-IS Objects to
+                                                RF</label
+                                            >
+                                        </div>
+                                    </div>
+                                    <div class="col-8">
+                                        <label
+                                            for="aprs_is.server"
+                                            class="form-label"
+                                            >Server</label
+                                        >
+                                        <input
+                                            type="text"
+                                            name="aprs_is.server"
+                                            id="aprs_is.server"
+                                            placeholder="www.aprsnet.uk"
+                                            class="form-control"
+                                            value="www.aprsnet.uk"
+                                        />
+                                    </div>
+                                    <div class="col-4">
+                                        <label
+                                            for="aprs_is.port"
+                                            class="form-label"
+                                            >Port</label
+                                        >
+                                        <input
+                                            type="text"
+                                            name="aprs_is.port"
+                                            id="aprs_is.port"
+                                            placeholder="14580"
+                                            class="form-control"
+                                            value="14580"
+                                        />
+                                    </div>
+                                </div>
+                                <div class="row mt-3">
+                                    <div class="col-8">
+                                        <label
+                                            for="aprs_is.passcode"
+                                            class="form-label"
+                                            >Passcode</label
+                                        >
+                                        <input
+                                            type="text"
+                                            name="aprs_is.passcode"
+                                            id="aprs_is.passcode"
+                                            class="form-control"
+                                            value="XYZWV"
+                                        />
+                                    </div>
+                                    <div class="col-4">
+                                        <label
+                                            for="aprs_is.filter"
+                                            class="form-label"
+                                            >Filter</label
+                                        >
+                                        <input
+                                            type="text"
+                                            class="form-control"
+                                            name="aprs_is.filter"
+                                            id="aprs_is.filter"
+                                            value="m/100"
+                                        />
+                                    </div>
+                                </div>
+                                <aside class="aprsnet-card mt-3" aria-label="APRS Net services and software">
+                                    <div class="aprsnet-card__intro">
+                                        <span class="aprsnet-card__icon" aria-hidden="true">🌐</span>
+                                        <div>
+                                            <strong>Recommended: APRS Net UK</strong>
+                                            <p>
+                                                <a href="https://www.aprsnet.uk/" target="_blank" rel="noopener noreferrer">Open www.aprsnet.uk</a>
+                                                for its live map, LoRa station view, messaging, weather, watchlists,
+                                                alerts and APRS utilities. A free member account adds saved watchlists,
+                                                offline message storage and synced alerts.
+                                            </p>
+                                            <a class="aprsnet-signup" href="https://www.aprsnet.uk/" target="_blank" rel="noopener noreferrer">
+                                                Visit APRS Net and sign up
+                                            </a>
+                                        </div>
+                                    </div>
+                                    <div class="aprsnet-links">
+                                        <a href="https://github.com/2E0LXY/APRS-Android" target="_blank" rel="noopener noreferrer">
+                                            <span aria-hidden="true">🤖</span>
+                                            <span><strong>Android app</strong><small>APRS client for aprsnet.uk</small></span>
+                                        </a>
+                                        <a href="https://github.com/2E0LXY/APRS-Client" target="_blank" rel="noopener noreferrer">
+                                            <span aria-hidden="true">🖥️</span>
+                                            <span><strong>Windows &amp; Linux</strong><small>Advanced desktop APRS client</small></span>
+                                        </a>
+                                        <a href="https://github.com/2E0LXY/Advanced-APRS-Go-server" target="_blank" rel="noopener noreferrer">
+                                            <span aria-hidden="true">⚡</span>
+                                            <span><strong>Run the server</strong><small>Advanced APRS Go server source</small></span>
+                                        </a>
+                                    </div>
+                                </aside>
+                            </div>
+                        </div>
+                        <hr>
+
+                        <div class="row my-5 d-flex align-items-top">
+                            <div class="col-lg-3 col-sm-12">
+                                <h5>
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="20"
+                                        height="20"
+                                        fill="currentColor"
+                                        class="bi bi-broadcast-pin"
+                                        viewBox="0 0 16 16"
+                                    >
+                                        <path
+                                            d="M3.05 3.05a7 7 0 0 0 0 9.9.5.5 0 0 1-.707.707 8 8 0 0 1 0-11.314.5.5 0 0 1 .707.707m2.122 2.122a4 4 0 0 0 0 5.656.5.5 0 1 1-.708.708 5 5 0 0 1 0-7.072.5.5 0 0 1 .708.708m5.656-.708a.5.5 0 0 1 .708 0 5 5 0 0 1 0 7.072.5.5 0 1 1-.708-.708 4 4 0 0 0 0-5.656.5.5 0 0 1 0-.708m2.122-2.12a.5.5 0 0 1 .707 0 8 8 0 0 1 0 11.313.5.5 0 0 1-.707-.707 7 7 0 0 0 0-9.9.5.5 0 0 1 0-.707zM6 8a2 2 0 1 1 2.5 1.937V15.5a.5.5 0 0 1-1 0V9.937A2 2 0 0 1 6 8"
+                                        />
+                                    </svg>
+                                    Beaconing
+                                </h5>
+                                <small>Set APRS beacon attributes.</small>
+                            </div>
+                            <div class="col-lg-9 col-sm-12">
+                                <div class="row">
+                                    <div class="col-6">
+                                        <div class="form-check form-switch">
+                                            <input
+                                                type="checkbox"
+                                                name="beacon.sendViaAPRSIS"
+                                                id="beacon.sendViaAPRSIS"
+                                                class="form-check-input"
+                                            />
+                                            <label
+                                                for="beacon.sendViaAPRSIS"
+                                                class="form-label"
+                                                >Send beacon via APRS-IS
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="form-check form-switch">
+                                            <input
+                                                type="checkbox"
+                                                name="beacon.sendViaRF"
+                                                id="beacon.sendViaRF"
+                                                class="form-check-input"
+                                            />
+                                            <label
+                                                for="beacon.sendViaRF"
+                                                class="form-label"
+                                                >Send beacon via RF
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row mt-3">
+                                    <div class="col-6">
+                                        <button class="btn btn-primary form-control h-100" id="send-beacon">Send beacon now</button>
+                                    </div>
+                                    <div class="col-6">
+                                        <label
+                                            for="beacon.beaconFreq"
+                                            class="form-label">
+                                            <small>(Select LoRa Beacon Frequency)</small>
+                                        </label>
+                                        <select
+                                            class="form-select form-select"
+                                            name="beacon.beaconFreq"
+                                            id="beacon.beaconFreq"
+                                        >
+                                            <option value="0">Beacon on Rx Freq</option>
+                                            <option value="1">Beacon on Tx Freq</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="row mt-3">
+                                    <div class="col-6">
+                                        <label
+                                            for="beacon.interval"
+                                            class="form-label"
+                                            >Beacon Interval
+                                        </label>
+                                        <div class="input-group">
+                                            <input
+                                                type="number"
+                                                name="beacon.interval"
+                                                id="beacon.interval"
+                                                class="form-control"
+                                                value="15"
+                                                min="10"
+                                                step="1"
+                                                required
+                                            />
+                                            <span class="input-group-text"
+                                                >minutes
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <label
+                                            for="beacon.ambiguityLevel"
+                                            class="form-label"
+                                            >APRS Position Ambiguity</label
+                                        >
+                                        <select
+                                            class="form-select form-select"
+                                            name="beacon.ambiguityLevel"
+                                            id="beacon.ambiguityLevel"
+                                        >
+                                            <option value="0" selected>No Ambiguity</option>
+                                            <option value="1">~110 m forced Ambiguity</option>
+                                            <option value="2">~1.1 km forced Ambiguity</option>
+                                            <option value="3">~11 km forced Ambiguity</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-12 mt-3">
+                                    <div class="form-check form-switch">
+                                        <input
+                                            type="checkbox"
+                                            name="beacon.gpsActive"
+                                            id="beacon.gpsActive"
+                                            class="form-check-input"
+                                        />
+                                        <label
+                                            for="beacon.gpsActive"
+                                            class="form-label"
+                                            >Send Real-GPS Beacon <small>(Only for Boards with GPS Modules)</small>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <hr>
+
+                        <div class="row my-5 d-flex align-items-top">
+                            <div class="col-lg-3 col-sm-12">
+                                <h5>
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="20"
+                                        height="20"
+                                        fill="currentColor"
+                                        class="bi bi-broadcast-pin"
+                                        viewBox="0 0 16 16"
+                                    >
+                                        <path
+                                            d="M3.05 3.05a7 7 0 0 0 0 9.9.5.5 0 0 1-.707.707 8 8 0 0 1 0-11.314.5.5 0 0 1 .707.707m2.122 2.122a4 4 0 0 0 0 5.656.5.5 0 1 1-.708.708 5 5 0 0 1 0-7.072.5.5 0 0 1 .708.708m5.656-.708a.5.5 0 0 1 .708 0 5 5 0 0 1 0 7.072.5.5 0 1 1-.708-.708 4 4 0 0 0 0-5.656.5.5 0 0 1 0-.708m2.122-2.12a.5.5 0 0 1 .707 0 8 8 0 0 1 0 11.313.5.5 0 0 1-.707-.707 7 7 0 0 0 0-9.9.5.5 0 0 1 0-.707zM6 8a2 2 0 1 1 2.5 1.937V15.5a.5.5 0 0 1-1 0V9.937A2 2 0 0 1 6 8"
+                                        />
+                                    </svg>
+                                    Black List
+                                </h5>
+                                <small>Add Callsigns with space between them to Blacklist (* wildcard allowed)</small>
+                            </div>
+                            <div class="col-9">
+                                <div class="row">
+                                    <div class="col-12">
+                                        <label
+                                            for="blacklist"
+                                            class="form-label"
+                                            >Blacklist</label
+                                        >
+                                        <input
+                                            type="text"
+                                            name="blacklist"
+                                            id="blacklist"
+                                            class="form-control"
+                                            placeholder="Station Callsign"
+                                            oninput="this.value = this.value.toUpperCase();"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <hr>
+
+                        <div class="row my-5 d-flex align-items-top">
+                            <div class="col-lg-3 col-sm-12">
+                                <h5>
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="20"
+                                        height="20"
+                                        fill="currentColor"
+                                        class="bi bi-broadcast-pin"
+                                        viewBox="0 0 16 16"
+                                    >
+                                        <path
+                                            d="M3.05 3.05a7 7 0 0 0 0 9.9.5.5 0 0 1-.707.707 8 8 0 0 1 0-11.314.5.5 0 0 1 .707.707m2.122 2.122a4 4 0 0 0 0 5.656.5.5 0 1 1-.708.708 5 5 0 0 1 0-7.072.5.5 0 0 1 .708.708m5.656-.708a.5.5 0 0 1 .708 0 5 5 0 0 1 0 7.072.5.5 0 1 1-.708-.708 4 4 0 0 0 0-5.656.5.5 0 0 1 0-.708m2.122-2.12a.5.5 0 0 1 .707 0 8 8 0 0 1 0 11.313.5.5 0 0 1-.707-.707 7 7 0 0 0 0-9.9.5.5 0 0 1 0-.707zM6 8a2 2 0 1 1 2.5 1.937V15.5a.5.5 0 0 1-1 0V9.937A2 2 0 0 1 6 8"
+                                        />
+                                    </svg>
+                                    Digipeating
+                                </h5>
+                                <small>Define the Digipeater mode</small>
+                            </div>
+                            <div class="col-9">
+                                <div class="row">
+                                    <div class="col-12">
+                                        <label
+                                            for="digi.mode"
+                                            class="form-label"
+                                            >Repeater Mode</label
+                                        >
+                                        <select
+                                            class="form-select form-select"
+                                            name="digi.mode"
+                                            id="digi.mode"
+                                        >
+                                            <option value="0" selected>OFF</option>
+                                            <option value="2">WIDE1 (fill-in) Digi</option>
+                                            <option value="3">WIDE2 (+WIDE1) Digi</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-12 mt-3">
+                                        <label
+                                            for="digi.ecoMode"
+                                            class="form-label"
+                                            >Eco Mode
+                                            <small
+                                                >(Requires Digipeating enabled and APRS-IS connection disabled).</small
+                                            ></label
+                                        >
+                                        <select
+                                            class="form-select form-select"
+                                            name="digi.ecoMode"
+                                            id="digi.ecoMode"
+                                        >
+                                            <option value="0" selected>OFF (Normal Mode - WiFiAP and Serial Output enabled)</option>
+                                            <option value="1">Ultra Eco Mode (Sleep till Packet Rx (WiFiAP/WebUI & Display disabled))</option>
+                                            <option value="2">OFF (Normal Mode - WiFiAP disabled but Serial Output still enabled)</option>
+                                        </select>
+                                    </div>                                    
+                                    <div class="col-12 mt-3">
+                                        <div class="form-check form-switch">
+                                            <div class="form-text">
+                                                If WiFi/server connection is lost in iGate-only mode, the device switches to Digipeater mode (WIDE1-1) and retries connection every 15 minutes.
+                                            </div>
+                                            <input
+                                                type="checkbox"
+                                                name="digi.backupDigiMode"
+                                                id="digi.backupDigiMode"
+                                                class="form-check-input"
+                                            />
+                                            <label
+                                                for="digi.backupDigiMode"
+                                                class="form-label"
+                                                >Backup Digipeater Mode</label
+                                            >
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <hr>
+
+                        <div class="row my-5 d-flex align-items-top">
+                            <div class="col-lg-3 col-sm-12">
+                                <h5>
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="20"
+                                        height="20"
+                                        fill="currentColor"
+                                        class="bi bi-broadcast"
+                                        viewBox="0 0 16 16"
+                                    >
+                                        <path
+                                            d="M3.05 3.05a7 7 0 0 0 0 9.9.5.5 0 0 1-.707.707 8 8 0 0 1 0-11.314.5.5 0 0 1 .707.707m2.122 2.122a4 4 0 0 0 0 5.656.5.5 0 1 1-.708.708 5 5 0 0 1 0-7.072.5.5 0 0 1 .708.708m5.656-.708a.5.5 0 0 1 .708 0 5 5 0 0 1 0 7.072.5.5 0 1 1-.708-.708 4 4 0 0 0 0-5.656.5.5 0 0 1 0-.708m2.122-2.12a.5.5 0 0 1 .707 0 8 8 0 0 1 0 11.313.5.5 0 0 1-.707-.707 7 7 0 0 0 0-9.9.5.5 0 0 1 0-.707zM10 8a2 2 0 1 1-4 0 2 2 0 0 1 4 0"
+                                        />
+                                    </svg>
+                                    LoRa
+                                </h5>
+                                <small
+                                    >Config LoRa APRS Xmitting settings.</small
+                                >
+                            </div>
+                            <div class="col-lg-9 col-sm-12">
+                                <div class="row">
+                                    <div class="col-6">
+                                        <div class="form-check form-switch">
+                                            <input
+                                                type="checkbox"
+                                                name="lora.rxActive"
+                                                id="lora.rxActive"
+                                                class="form-check-input"
+                                            />
+                                            <label
+                                                for="lora.rxActive"
+                                                class="form-label"
+                                                >Enable LoRa RX</label
+                                            >
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="form-check form-switch">
+                                            <input
+                                                type="checkbox"
+                                                name="lora.txActive"
+                                                id="lora.txActive"
+                                                class="form-check-input"
+                                            />
+                                            <label
+                                                for="lora.txActive"
+                                                class="form-label"
+                                                >Enable LoRa TX</label
+                                            >
+                                        </div>
+                                    </div>
+                                    <div class="col-6 mt-1">
+                                        <label
+                                            for="lora.rxFreq"
+                                            class="form-label">
+                                            Rx Frequency
+                                        </label>
+                                        <div class="input-group">
+                                            <input
+                                                type="text"
+                                                name="lora.rxFreq"
+                                                id="lora.rxFreq"
+                                                placeholder="433775000"
+                                                class="form-control"
+                                            />
+                                            <span class="input-group-text"
+                                                >Hz
+                                            </span>
+                                        </div>
+                                    </div>                                    
+                                    <div class="col-6 mt-1">
+                                        <label
+                                            for="lora.txFreq"
+                                            class="form-label"
+                                            >Tx Frequency
+                                        </label>
+                                        <div class="input-group">
+                                            <input
+                                                type="text"
+                                                name="lora.txFreq"
+                                                id="lora.txFreq"
+                                                placeholder="433775000"
+                                                class="form-control"
+                                                required=""
+                                            />
+                                            <input
+                                                type="hidden"
+                                                name="lora.iGateFreq"
+                                                id="lora.iGateFreq"
+                                                placeholder="433775000"
+                                                class="form-control"
+                                                required=""
+                                            />
+                                            <span class="input-group-text">
+                                                Hz
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="col-6 mt-3">
+                                        <label
+                                            for="lora.rxSpreadingFactor"
+                                            class="form-label"
+                                            >Rx Spreading Factor
+                                        </label>
+                                        <select
+                                            class="form-select form-select"
+                                            name="lora.rxSpreadingFactor"
+                                            id="lora.rxSpreadingFactor"
+                                            required=""
+                                        >
+                                            <option value="5">SF5 - Lowest battery usage</option>
+                                            <option value="6">SF6</option>
+                                            <option value="7">SF7</option>
+                                            <option value="8">SF8</option>
+                                            <option value="9">SF9</option>
+                                            <option value="10">SF10</option>
+                                            <option value="11">SF11</option>
+                                            <option value="12" selected>SF12 - Highest sensitivity</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-6 mt-3">
+                                        <label
+                                            for="lora.txSpreadingFactor"
+                                            class="form-label"
+                                            >Tx Spreading Factor
+                                        </label>
+                                        <select
+                                            class="form-select form-select"
+                                            name="lora.txSpreadingFactor"
+                                            id="lora.txSpreadingFactor"
+                                            required=""
+                                        >
+                                            <option value="5">SF5 - Lowest battery usage</option>
+                                            <option value="6">SF6</option>
+                                            <option value="7">SF7</option>
+                                            <option value="8">SF8</option>
+                                            <option value="9">SF9</option>
+                                            <option value="10">SF10</option>
+                                            <option value="11">SF11</option>
+                                            <option value="12" selected>SF12 - Highest sensitivity</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-6 mt-3">
+                                        <label
+                                            for="lora.rxCodingRate4"
+                                            class="form-label">
+                                            Rx Coding Rate
+                                        </label>
+                                        <select
+                                            class="form-select form-select"
+                                            name="lora.rxCodingRate4"
+                                            id="lora.rxCodingRate4"
+                                            required=""
+                                        >
+                                            <option value="5" selected>5</option>
+                                            <option value="6">6</option>
+                                            <option value="7">7</option>
+                                            <option value="8">8</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-6 mt-3">
+                                        <label
+                                            for="lora.txCodingRate4"
+                                            class="form-label">
+                                            Tx Coding Rate
+                                        </label>
+                                        <select
+                                            class="form-select form-select"
+                                            name="lora.txCodingRate4"
+                                            id="lora.txCodingRate4"
+                                            required=""
+                                        >
+                                            <option value="5" selected>5</option>
+                                            <option value="6">6</option>
+                                            <option value="7">7</option>
+                                            <option value="8">8</option>
+                                        </select>
+                                    </div>                                    
+                                    <div class="col-6 mt-3">
+                                        <label
+                                            for="lora.rxSignalBandwidth"
+                                            class="form-label"
+                                            >Rx Signal Bandwidth
+                                        </label>
+                                        <div class="input-group">
+                                            <select
+                                                class="form-select form-select"
+                                                name="lora.rxSignalBandwidth"
+                                                id="lora.rxSignalBandwidth"
+                                                required=""
+                                            >   
+                                                <option value="62500">62.5 kHz</option>
+                                                <option value="125000" selected>125 kHz</option>
+                                                <option value="250000">250 kHz</option>
+                                                <option value="500000">500 kHz</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-6 mt-3">
+                                        <label
+                                            for="lora.txSignalBandwidth"
+                                            class="form-label"
+                                            >Tx Signal Bandwidth
+                                        </label>
+                                        <div class="input-group">
+                                            <select
+                                                class="form-select form-select"
+                                                name="lora.txSignalBandwidth"
+                                                id="lora.txSignalBandwidth"
+                                                required=""
+                                            >   
+                                                <option value="62500">62.5 kHz</option>
+                                                <option value="125000" selected>125 kHz</option>
+                                                <option value="250000">250 kHz</option>
+                                                <option value="500000">500 kHz</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-6 mt-3">
+                                        <label
+                                            for="lora.power"
+                                            class="form-label">
+                                            Power
+                                        </label>
+                                        <div class="input-group">
+                                            <input
+                                                type="number"
+                                                name="lora.power"
+                                                id="lora.power"
+                                                placeholder="20"
+                                                min="0"
+                                                max="20"
+                                                step="1"
+                                                class="form-control"
+                                                required=""
+                                            />
+                                            <span class="input-group-text"
+                                                >dBm</span
+                                            >
+                                        </div>
+                                    </div>                                    
+                                </div>
+                            </div>
+                        </div>
+                        <hr>
+
+                        <div class="row my-5 d-flex align-items-top">
+                            <div class="col-lg-3 col-sm-12">
+                                <h5>
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="20"
+                                        height="20"
+                                        fill="currentColor"
+                                        class="bi bi-tv-fill"
+                                        viewBox="0 0 16 16"
+                                    >
+                                        <path
+                                            d="M2.5 13.5A.5.5 0 0 1 3 13h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5M2 2h12s2 0 2 2v6s0 2-2 2H2s-2 0-2-2V4s0-2 2-2"
+                                        />
+                                    </svg>
+                                    Display
+                                </h5>
+                                <small>OLED screen configuration.</small>
+                            </div>
+                            <div class="col-lg-9 col-sm-12">
+                                <div class="row">
+                                    <div class="col-6">
+                                        <div class="form-check form-switch">
+                                            <input
+                                                type="checkbox"
+                                                name="display.alwaysOn"
+                                                id="display.alwaysOn"
+                                                class="form-check-input"
+                                            />
+                                            <label
+                                                for="display.alwaysOn"
+                                                class="form-label"
+                                                >Always On</label
+                                            >
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div
+                                            class="form-check form-switch mt-1"
+                                        >
+                                            <input
+                                                type="checkbox"
+                                                name="display.turn180"
+                                                id="display.turn180"
+                                                class="form-check-input"
+                                            />
+                                            <label
+                                                for="display.turn180"
+                                                class="form-label"
+                                                >Turn 180º</label
+                                            >
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row mt-1">
+                                    <div class="col-6">
+                                        <label
+                                            for="display.timeout"
+                                            class="form-label"
+                                            >Display Timeout</label
+                                        >
+                                        <div class="input-group">
+                                            <input
+                                                type="text"
+                                                name="display.timeout"
+                                                id="display.timeout"
+                                                value="4"
+                                                step="1"
+                                                min="2"
+                                                class="form-control"
+                                            />
+                                            <span class="input-group-text"
+                                                >seconds</span
+                                            >
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <label
+                                            for="other.rememberStationTime"
+                                            class="form-label"
+                                            >Remember Station Time</label
+                                        >
+                                        <div class="input-group">
+                                            <input
+                                                type="number"
+                                                name="other.rememberStationTime"
+                                                id="other.rememberStationTime"
+                                                placeholder="30"
+                                                class="form-control"
+                                                required=""
+                                                step="1"
+                                                min="1"
+                                            />
+                                            <span class="input-group-text"
+                                                >minutes</span
+                                            >
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <hr>
+
+                        <div class="row my-5 d-flex align-items-top">
+                            <div class="col-lg-3 col-sm-12">
+                                <h5>
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="20"
+                                        height="20"
+                                        fill="currentColor"
+                                        class="bi bi-heart-pulse-fill"
+                                        viewBox="0 0 16 16"
+                                    >
+                                        <path
+                                            d="M1.475 9C2.702 10.84 4.779 12.871 8 15c3.221-2.129 5.298-4.16 6.525-6H12a.5.5 0 0 1-.464-.314l-1.457-3.642-1.598 5.593a.5.5 0 0 1-.945.049L5.889 6.568l-1.473 2.21A.5.5 0 0 1 4 9z"
+                                        />
+                                        <path
+                                            d="M.88 8C-2.427 1.68 4.41-2 7.823 1.143q.09.083.176.171a3 3 0 0 1 .176-.17C11.59-2 18.426 1.68 15.12 8h-2.783l-1.874-4.686a.5.5 0 0 0-.945.049L7.921 8.956 6.464 5.314a.5.5 0 0 0-.88-.091L3.732 8z"
+                                        />
+                                    </svg>
+                                    Battery
+                                </h5>
+                                <small>
+                                    Battery Monitor & Health
+                                    <br>
+                                    <br>
+                                    Max Voltage on input pin is 3.3V.
+                                    <br>
+                                    <br>
+                                    Calculate voltage divider accordingly.
+                                </small>
+                            </div>
+                            <div class="col-9">
+                                <div class="row">
+                                    <div class="col-6">
+                                        <div class="form-check form-switch">
+                                            <input
+                                                type="checkbox"
+                                                name="battery.sendInternalVoltage"
+                                                id="battery.sendInternalVoltage"
+                                                class="form-check-input"
+                                            />
+                                            <label
+                                                for="battery.sendInternalVoltage"
+                                                class="form-label"
+                                                >Send Internal Voltage</label
+                                            >
+                                        </div>
+                                        <div class="form-check form-switch">
+                                            <input
+                                                type="checkbox"
+                                                name="battery.sendVoltageAsTelemetry"
+                                                id="battery.sendVoltageAsTelemetry"
+                                                class="form-check-input"
+                                            />
+                                            <label
+                                                for="battery.sendVoltageAsTelemetry"
+                                                class="form-label"
+                                                style="font-style: italic;"
+                                                >(Send Voltage As Telemetry)</label   
+                                            >
+                                        </div>
+                                        <div class="form-check form-switch">
+                                            <input
+                                                type="checkbox"
+                                                name="battery.monitorInternalVoltage"
+                                                id="battery.monitorInternalVoltage"
+                                                class="form-check-input"
+                                            />
+                                            <label
+                                                for="battery.monitorInternalVoltage"
+                                                class="form-label"
+                                                >Monitor Internal Voltage Health</label
+                                            >
+                                        </div>
+                                        <div class="col">
+                                            <label for="battery.internalSleepVoltage" class="form-label"
+                                                >Internal Sleep Voltage</label
+                                            >
+                                            <div class="input-group">
+                                                <input
+                                                    type="number"
+                                                    name="battery.internalSleepVoltage"
+                                                    id="battery.internalSleepVoltage"
+                                                    placeholder="3.0"
+                                                    class="form-control"
+                                                    step="0.1"
+                                                    min="2.9"
+                                                    max="3.7"
+                                                />
+                                                <span class="input-group-text"
+                                                    >volts</span
+                                                >
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="form-check form-switch">
+                                            <input
+                                                type="checkbox"
+                                                name="battery.sendExternalVoltage"
+                                                id="battery.sendExternalVoltage"
+                                                class="form-check-input"
+                                            />
+                                            <label
+                                                for="battery.sendExternalVoltage"
+                                                class="form-label"
+                                                >Send External Voltage</label
+                                            >
+                                        </div>
+                                        <div class="form-check form-switch">
+                                            <input
+                                                type="checkbox"
+                                                name="battery.useExternalI2CSensor"
+                                                id="battery.useExternalI2CSensor"
+                                                class="form-check-input"
+                                            />
+                                            <label
+                                                for="battery.useExternalI2CSensor"
+                                                class="form-label"
+                                                >Use External I2C Voltage Sensor</label
+                                            >
+                                        </div>
+                                        <div class="form-check form-switch">
+                                            <input
+                                                type="checkbox"
+                                                name="battery.monitorExternalVoltage"
+                                                id="battery.monitorExternalVoltage"
+                                                class="form-check-input"
+                                            />
+                                            <label
+                                                for="battery.monitorExternalVoltage"
+                                                class="form-label"
+                                                >Monitor External Voltage Health</label
+                                            >
+                                        </div>
+                                        <div class="col">
+                                            <label for="battery.externalSleepVoltage" class="form-label"
+                                                >External Sleep Voltage</label
+                                            >
+                                            <div class="input-group">
+                                                <input
+                                                    type="number"
+                                                    name="battery.externalSleepVoltage"
+                                                    id="battery.externalSleepVoltage"
+                                                    placeholder="3.0"
+                                                    class="form-control"
+                                                    step="0.1"
+                                                    min="3.0"
+                                                    max="24.0"
+                                                />
+                                                <span class="input-group-text"
+                                                    >volts</span
+                                                >
+                                            </div>
+                                        </div>
+                                        <div class="form-floating col-7 mt-3">
+                                            <input
+                                                type="text"
+                                                name="battery.externalVoltagePin"
+                                                id="battery.externalVoltagePin"
+                                                value="34"
+                                                class="form-control"
+                                            />
+                                            <label
+                                                for="battery.externalVoltagePin"
+                                                class="form-label"
+                                                >External Voltage Pin</label
+                                            >
+                                        </div>
+                                        <div class="col">
+                                            <label for="battery.voltageDividerR1" class="form-label">External Voltage divider R1</label>
+                                            <div class="input-group">
+                                                <input 
+                                                    type="number"
+                                                    name="battery.voltageDividerR1"
+                                                    id="battery.voltageDividerR1"
+                                                    placeholder="100.0"
+                                                    class="form-control"
+                                                    step="0.1"
+                                                    min="1"
+                                                    max="1000"
+                                                />
+                                                <span class="input-group-text">kOhm</span>
+                                            </div>
+                                        </div>
+                                        <div class="col">
+                                            <label for="battery.voltageDividerR2" class="form-label">External Voltage divider R2</label>
+                                            <div class="input-group">
+                                                <input
+                                                    type="number"
+                                                    name="battery.voltageDividerR2"
+                                                    id="battery.voltageDividerR2"
+                                                    placeholder="27.0"
+                                                    class="form-control"
+                                                    step="0.1"
+                                                    min="1"
+                                                    max="1000"
+                                                />
+                                                <span class="input-group-text">kOhm</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <hr>
+
+                        <div class="row my-5 d-flex align-items-top">
+                            <div class="col-lg-3 col-sm-12">
+                                <h5>
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="20"
+                                        height="20"
+                                        fill="currentColor"
+                                        class="bi bi-broadcast-pin"
+                                        viewBox="0 0 16 16"
+                                    >
+                                        <path
+                                            d="M3.05 3.05a7 7 0 0 0 0 9.9.5.5 0 0 1-.707.707 8 8 0 0 1 0-11.314.5.5 0 0 1 .707.707m2.122 2.122a4 4 0 0 0 0 5.656.5.5 0 1 1-.708.708 5 5 0 0 1 0-7.072.5.5 0 0 1 .708.708m5.656-.708a.5.5 0 0 1 .708 0 5 5 0 0 1 0 7.072.5.5 0 1 1-.708-.708 4 4 0 0 0 0-5.656.5.5 0 0 1 0-.708m2.122-2.12a.5.5 0 0 1 .707 0 8 8 0 0 1 0 11.313.5.5 0 0 1-.707-.707 7 7 0 0 0 0-9.9.5.5 0 0 1 0-.707zM6 8a2 2 0 1 1 2.5 1.937V15.5a.5.5 0 0 1-1 0V9.937A2 2 0 0 1 6 8"
+                                        />
+                                    </svg>
+                                    WX Telemetry
+                                </h5>
+                                <small>Define Wx telemetry</small>
+                            </div>
+                            <div class="col-9">
+                                <div class="row">
+                                    <div class="col-12">
+                                        <div class="form-check form-switch">
+                                            <input
+                                                type="checkbox"
+                                                name="wxsensor.active"
+                                                id="wxsensor.active"
+                                                class="form-check-input"
+                                            />
+                                            <label
+                                                for="wxsensor.active"
+                                                class="form-label"
+                                                >Activate Wx Telemetry
+                                                <small
+                                                    >(Requires a BME/BMP280, BME680 or Si7021 sensor).</small
+                                                ></label
+                                            >
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row mt-2">
+                                    <div class="col-6">
+                                        <label for="wxsensor.heightCorrection" class="form-label"
+                                            >Height Correction (Above Sea-Level)</label
+                                        >
+                                        <div class="input-group">
+                                            <input
+                                                type="number"
+                                                name="wxsensor.heightCorrection"
+                                                id="wxsensor.heightCorrection"
+                                                placeholder="0"
+                                                class="form-control"
+                                                step="1"
+                                                min="0"
+                                            />
+                                            <span class="input-group-text"
+                                                >meters</span
+                                            >
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <label for="wxsensor.temperatureCorrection" class="form-label"
+                                            >Temperature Correction</label
+                                        >
+                                        <div class="input-group">
+                                            <input
+                                                type="number"
+                                                name="wxsensor.temperatureCorrection"
+                                                id="wxsensor.temperatureCorrection"
+                                                placeholder="0.0"
+                                                class="form-control"
+                                                step="0.1"
+                                                min="-5"
+                                                max="5"
+                                            />
+                                            <span class="input-group-text"
+                                                >C°</span
+                                            >
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <hr>
+
+                        <div class="row my-5 d-flex align-items-top">
+                            <div class="col-lg-3 col-sm-12">
+                                <h5>
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="20"
+                                        height="20"
+                                        fill="currentColor"
+                                        class="bi bi-file-earmark-text-fill"
+                                        viewBox="0 0 16 16"
+                                    >
+                                        <path
+                                            d="M9.293 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V4.707A1 1 0 0 0 13.707 4L10 .293A1 1 0 0 0 9.293 0M9.5 3.5v-2l3 3h-2a1 1 0 0 1-1-1M4.5 9a.5.5 0 0 1 0-1h7a.5.5 0 0 1 0 1zM4 10.5a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1-.5-.5m.5 2.5a.5.5 0 0 1 0-1h4a.5.5 0 0 1 0 1z"
+                                        />
+                                    </svg>
+                                    Syslog
+                                </h5>
+                                <small
+                                    >Broadcast the system log over the
+                                    network.</small
+                                >
+                            </div>
+                            <div class="col-lg-9 col-sm-12">
+                                <div class="row">
+                                    <div class="col-6">
+                                        <div class="form-check form-switch">
+                                            <input
+                                                type="checkbox"
+                                                name="syslog.active"
+                                                id="syslog.active"
+                                                class="form-check-input"
+                                            />
+                                            <label
+                                                for="syslog.active"
+                                                class="form-label"
+                                                >Enable syslog</label
+                                            >
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="form-check form-switch">
+                                            <input
+                                                type="checkbox"
+                                                name="syslog.logBeaconOverTCPIP"
+                                                id="syslog.logBeaconOverTCPIP"
+                                                class="form-check-input"
+                                            />
+                                            <label
+                                                for="syslog.logBeaconOverTCPIP"
+                                                class="form-label"
+                                                >Log Beacon over TCP/IP</label
+                                            >
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row mt-3">
+                                    <div class="col-6">
+                                        <label
+                                            for="syslog.server"
+                                            class="form-label"
+                                            >Server</label
+                                        >
+                                        <input
+                                            type="text"
+                                            name="syslog.server"
+                                            id="syslog.server"
+                                            placeholder="lora.link9.net"
+                                            class="form-control"
+                                        />
+                                    </div>
+                                    <div class="col-6">
+                                        <label
+                                            for="syslog.port"
+                                            class="form-label"
+                                            >Port</label
+                                        >
+                                        <input
+                                            type="text"
+                                            name="syslog.port"
+                                            id="syslog.port"
+                                            placeholder="1514"
+                                            class="form-control"
+                                        />
+                                    </div>
+                                    
+                                </div>
+                            </div>
+                        </div>
+                        <hr>
+
+                        <div class="row my-5 d-flex align-items-top">
+                            <div class="col-lg-3 col-sm-12">
+                                <h5>
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="20"
+                                        height="20"
+                                        fill="currentColor"
+                                        class="bi bi-database-fill"
+                                        viewBox="0 0 16 16"
+                                    >
+                                        <path
+                                            d="M3.904 1.777C4.978 1.289 6.427 1 8 1s3.022.289 4.096.777C13.125 2.245 14 2.993 14 4s-.875 1.755-1.904 2.223C11.022 6.711 9.573 7 8 7s-3.022-.289-4.096-.777C2.875 5.755 2 5.007 2 4s.875-1.755 1.904-2.223"
+                                        />
+                                        <path
+                                            d="M2 6.161V7c0 1.007.875 1.755 1.904 2.223C4.978 9.71 6.427 10 8 10s3.022-.289 4.096-.777C13.125 8.755 14 8.007 14 7v-.839c-.457.432-1.004.751-1.49.972C11.278 7.693 9.682 8 8 8s-3.278-.307-4.51-.867c-.486-.22-1.033-.54-1.49-.972"
+                                        />
+                                        <path
+                                            d="M2 9.161V10c0 1.007.875 1.755 1.904 2.223C4.978 12.711 6.427 13 8 13s3.022-.289 4.096-.777C13.125 11.755 14 11.007 14 10v-.839c-.457.432-1.004.751-1.49.972-1.232.56-2.828.867-4.51.867s-3.278-.307-4.51-.867c-.486-.22-1.033-.54-1.49-.972"
+                                        />
+                                        <path
+                                            d="M2 12.161V13c0 1.007.875 1.755 1.904 2.223C4.978 15.711 6.427 16 8 16s3.022-.289 4.096-.777C13.125 14.755 14 14.007 14 13v-.839c-.457.432-1.004.751-1.49.972-1.232.56-2.828.867-4.51.867s-3.278-.307-4.51-.867c-.486-.22-1.033-.54-1.49-.972"
+                                        />
+                                    </svg>
+                                    TNC
+                                </h5>
+                                <small
+                                    >TNC and KISS configuration</small
+                                >
+                            </div>
+                            <div class="col-lg-9 col-sm-12">
+                                <div class="row">
+                                    <div class="col-6">
+                                        <div class="form-check form-switch">
+                                            <input
+                                                type="checkbox"
+                                                name="tnc.enableSerial"
+                                                id="tnc.enableSerial"
+                                                class="form-check-input"
+                                            />
+                                            <label
+                                                for="tnc.enableSerial"
+                                                class="form-label"
+                                                >Enable Serial KISS</label
+                                            >
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="form-check form-switch">
+                                            <input
+                                                type="checkbox"
+                                                name="tnc.enableServer"
+                                                id="tnc.enableServer"
+                                                class="form-check-input"
+                                            />
+                                            <label
+                                                for="tnc.enableServer"
+                                                class="form-label"
+                                                >Enable TNC server <small><strong>(Port 8001)</strong></small></label
+                                            >
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row mt-2">                                    
+                                    <div class="col-6">
+                                        <div class="form-check form-switch">
+                                            <input
+                                                type="checkbox"
+                                                name="tnc.acceptOwn"
+                                                id="tnc.acceptOwn"
+                                                class="form-check-input"
+                                            />
+                                            <label
+                                                for="tnc.acceptOwn"
+                                                class="form-label"
+                                                >Accept own frames via KISS</label
+                                            >
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="form-check form-switch">
+                                            <input
+                                                type="checkbox"
+                                                name="tnc.aprsBridgeActive"
+                                                id="tnc.aprsBridgeActive"
+                                                class="form-check-input"
+                                            />
+                                            <label
+                                                for="tnc.aprsBridgeActive"
+                                                class="form-label"
+                                                >Enable APRS Bridge</label
+                                            >
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <hr>
+
+                        <div class="row my-5 d-flex align-items-top">
+                            <div class="col-lg-3 col-sm-12">
+                                <h5>
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="20"
+                                        height="20"
+                                        fill="currentColor"
+                                        class="bi bi-database-fill"
+                                        viewBox="0 0 16 16"
+                                    >
+                                        <path
+                                            d="M3.904 1.777C4.978 1.289 6.427 1 8 1s3.022.289 4.096.777C13.125 2.245 14 2.993 14 4s-.875 1.755-1.904 2.223C11.022 6.711 9.573 7 8 7s-3.022-.289-4.096-.777C2.875 5.755 2 5.007 2 4s.875-1.755 1.904-2.223"
+                                        />
+                                        <path
+                                            d="M2 6.161V7c0 1.007.875 1.755 1.904 2.223C4.978 9.71 6.427 10 8 10s3.022-.289 4.096-.777C13.125 8.755 14 8.007 14 7v-.839c-.457.432-1.004.751-1.49.972C11.278 7.693 9.682 8 8 8s-3.278-.307-4.51-.867c-.486-.22-1.033-.54-1.49-.972"
+                                        />
+                                        <path
+                                            d="M2 9.161V10c0 1.007.875 1.755 1.904 2.223C4.978 12.711 6.427 13 8 13s3.022-.289 4.096-.777C13.125 11.755 14 11.007 14 10v-.839c-.457.432-1.004.751-1.49.972-1.232.56-2.828.867-4.51.867s-3.278-.307-4.51-.867c-.486-.22-1.033-.54-1.49-.972"
+                                        />
+                                        <path
+                                            d="M2 12.161V13c0 1.007.875 1.755 1.904 2.223C4.978 15.711 6.427 16 8 16s3.022-.289 4.096-.777C13.125 14.755 14 14.007 14 13v-.839c-.457.432-1.004.751-1.49.972-1.232.56-2.828.867-4.51.867s-3.278-.307-4.51-.867c-.486-.22-1.033-.54-1.49-.972"
+                                        />
+                                    </svg>
+                                    MQTT
+                                </h5>
+                                <small>Set your MQTT server</small>
+                            </div>
+                            <div class="col-lg-9 col-sm-12">
+                                <div class="row">
+                                    <div class="col-6">
+                                        <div class="form-check form-switch">
+                                            <input
+                                                type="checkbox"
+                                                name="mqtt.active"
+                                                id="mqtt.active"
+                                                class="form-check-input"
+                                            />
+                                            <label
+                                                for="mqtt.active"
+                                                class="form-label"
+                                                >Enable</label
+                                            >
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="form-check form-switch">
+                                            <input
+                                                type="checkbox"
+                                                name="mqtt.beaconOverMqtt"
+                                                id="mqtt.beaconOverMqtt"
+                                                class="form-check-input"
+                                            />
+                                            <label
+                                                for="mqtt.beaconOverMqtt"
+                                                class="form-label"
+                                                >Send (also) iGate Beacon</label
+                                            >
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row mt-3">
+                                    <div class="col-6">
+                                        <label
+                                            for="mqtt.server"
+                                            class="form-label"
+                                            >Server</label
+                                        >
+                                        <div class="input-group">
+                                            <input
+                                                type="text"
+                                                name="mqtt.server"
+                                                id="mqtt.server"
+                                                class="form-control"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <label
+                                            for="mqtt.topic"
+                                            class="form-label"
+                                            >Topic <small>(Default is <strong>aprs-igate</strong>)</small></label
+                                        >
+                                        <div class="input-group">
+                                            <input
+                                                type="text"
+                                                name="mqtt.topic"
+                                                id="mqtt.topic"
+                                                class="form-control"
+                                                placeholder="aprs-igate"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row mt-3">
+                                    <div class="col-6">
+                                        <label
+                                            for="mqtt.username"
+                                            class="form-label"
+                                            >Username</label
+                                        >
+                                        <div class="input-group">
+                                            <input
+                                                type="text"
+                                                name="mqtt.username"
+                                                id="mqtt.username"
+                                                class="form-control"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <label
+                                            for="mqtt.password"
+                                            class="form-label"
+                                            >Password</label
+                                        >
+                                        <div class="input-group">
+                                            <input
+                                                type="password"
+                                                name="mqtt.password"
+                                                id="mqtt.password"
+                                                class="form-control"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row mt-3">                                    
+                                    <div class="col-6">
+                                        <label
+                                            for="mqtt.port"
+                                            class="form-label"
+                                            >Port <small>(Default is <strong>1883</strong>)</small></label
+                                        >
+                                        <div class="input-group">
+                                            <input
+                                                type="number"
+                                                name="mqtt.port"
+                                                id="mqtt.port"
+                                                class="form-control"
+                                                placeholder="1883"
+                                                required=""
+                                                step="1"
+                                                min="0"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <hr>
+
+                        <div class="row my-5 d-flex align-items-top">
+                            <div class="col-lg-3 col-sm-12">
+                                <h5>
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="20"
+                                        height="20"
+                                        fill="currentColor"
+                                        class="bi bi-heart-pulse-fill"
+                                        viewBox="0 0 16 16"
+                                    >
+                                        <path
+                                            d="M1.475 9C2.702 10.84 4.779 12.871 8 15c3.221-2.129 5.298-4.16 6.525-6H12a.5.5 0 0 1-.464-.314l-1.457-3.642-1.598 5.593a.5.5 0 0 1-.945.049L5.889 6.568l-1.473 2.21A.5.5 0 0 1 4 9z"
+                                        />
+                                        <path
+                                            d="M.88 8C-2.427 1.68 4.41-2 7.823 1.143q.09.083.176.171a3 3 0 0 1 .176-.17C11.59-2 18.426 1.68 15.12 8h-2.783l-1.874-4.686a.5.5 0 0 0-.945.049L7.921 8.956 6.464 5.314a.5.5 0 0 0-.88-.091L3.732 8z"
+                                        />
+                                    </svg>
+                                    Reboot Time
+                                </h5>
+                            </div>
+                            <div class="col-9">
+                                <div class="row">
+                                    <div class="col-6">
+                                        <div class="form-check form-switch">
+                                            <input
+                                                type="checkbox"
+                                                name="other.rebootMode"
+                                                id="other.rebootMode"
+                                                class="form-check-input"
+                                            />
+                                            <label
+                                                for="other.rebootMode"
+                                                class="form-label"
+                                                >Reboot Mode Active</label
+                                            >
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <label
+                                            for="other.rebootModeTime"
+                                            class="form-label"
+                                            >Time before forced Reboot</label
+                                        >                                    
+                                        <div class="input-group">
+                                            <input
+                                                type="number"
+                                                name="other.rebootModeTime"
+                                                id="other.rebootModeTime"
+                                                placeholder="6"
+                                                class="form-control"
+                                                step="6"
+                                                min="6"
+                                                max="168"
+                                            />
+                                            <span class="input-group-text"
+                                                >hours</span
+                                            >
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <hr>
+
+                        <div class="row my-5 d-flex align-items-top">
+                            <div class="col-lg-3 col-sm-12">
+                                <h5>
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="20"
+                                        height="20"
+                                        fill="currentColor"
+                                        class="bi bi-router-fill"
+                                        viewBox="0 0 16 16"
+                                    >
+                                        <path
+                                            d="M5.525 3.025a3.5 3.5 0 0 1 4.95 0 .5.5 0 1 0 .707-.707 4.5 4.5 0 0 0-6.364 0 .5.5 0 0 0 .707.707"
+                                        />
+                                        <path
+                                            d="M6.94 4.44a1.5 1.5 0 0 1 2.12 0 .5.5 0 0 0 .708-.708 2.5 2.5 0 0 0-3.536 0 .5.5 0 0 0 .707.707Z"
+                                        />
+                                        <path
+                                            d="M2.974 2.342a.5.5 0 1 0-.948.316L3.806 8H1.5A1.5 1.5 0 0 0 0 9.5v2A1.5 1.5 0 0 0 1.5 13H2a.5.5 0 0 0 .5.5h2A.5.5 0 0 0 5 13h6a.5.5 0 0 0 .5.5h2a.5.5 0 0 0 .5-.5h.5a1.5 1.5 0 0 0 1.5-1.5v-2A1.5 1.5 0 0 0 14.5 8h-2.306l1.78-5.342a.5.5 0 1 0-.948-.316L11.14 8H4.86zM2.5 11a.5.5 0 1 1 0-1 .5.5 0 0 1 0 1m4.5-.5a.5.5 0 1 1 1 0 .5.5 0 0 1-1 0m2.5.5a.5.5 0 1 1 0-1 .5.5 0 0 1 0 1m1.5-.5a.5.5 0 1 1 1 0 .5.5 0 0 1-1 0m2 0a.5.5 0 1 1 1 0 .5.5 0 0 1-1 0"
+                                        />
+                                        <path
+                                            d="M8.5 5.5a.5.5 0 1 1-1 0 .5.5 0 0 1 1 0"
+                                        />
+                                    </svg>
+                                    WiFi Auto AP
+                                </h5>
+                                <small
+                                    >WiFi AP will start if there is no WiFi
+                                    connection available. Timeout will count from 
+                                    startup or last client disconnected.</small
+                                >
+                            </div>
+                            <div class="col-9">
+                                <div class="row">
+                                    <div class="col-12">
+                                        <div class="form-check form-switch">
+                                            <input
+                                                type="checkbox"
+                                                name="wifi.autoAP.enabled"
+                                                id="wifi.autoAP.enabled"
+                                                class="form-check-input"
+                                            />
+                                            <label
+                                                for="wifi.autoAP.enabled"
+                                                class="form-label"
+                                                >Enable Auto AP</label
+                                            >
+                                            <div class="form-text">
+                                                Create WiFi AP when no network is available
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div id="wifi-autoap-config" style="{{wifi.autoAP.enabled ? '' : 'display:none'}}">
+                                    <div class="row mt-3">
+                                        <div class="col-6">
+                                            <label
+                                                for="wifi.autoAP.password"
+                                                class="form-label"
+                                                >Password</label
+                                            >
+                                            <div class="input-group">
+                                                <input
+                                                    type="password"
+                                                    name="wifi.autoAP.password"
+                                                    id="wifi.autoAP.password"
+                                                    class="form-control"
+                                                    placeholder="1234567890"
+                                                    required=""
+                                                />
+                                            </div>
+                                        </div>
+                                        <div class="col-6">
+                                            <label
+                                                for="wifi.autoAP.timeout"
+                                                class="form-label"
+                                                >WiFiAP timeout (to search again)</label
+                                            >
+                                            <div class="input-group">
+                                                <input
+                                                    type="number"
+                                                    name="wifi.autoAP.timeout"
+                                                    id="wifi.autoAP.timeout"
+                                                    class="form-control"
+                                                    placeholder="10"
+                                                    required=""
+                                                    step="1"
+                                                    min="0"
+                                                />
+                                                <span class="input-group-text"
+                                                    >minutes</span
+                                                >
+                                                <div class="form-text">
+                                                    Set to <strong>0</strong> if you don't
+                                                    want WiFi AP to stop.
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <hr>
+
+                        <div class="row my-5 d-flex align-items-top">
+                            <div class="col-lg-3 col-sm-12">
+                                <h5>
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="20"
+                                        height="20"
+                                        fill="currentColor"
+                                        class="bi bi-cloud-upload-fill"
+                                        viewBox="0 0 16 16"
+                                    >
+                                        <path
+                                            fill-rule="evenodd"
+                                            d="M8 0a5.53 5.53 0 0 0-3.594 1.342c-.766.66-1.321 1.52-1.464 2.383C1.266 4.095 0 5.555 0 7.318 0 9.366 1.708 11 3.781 11H7.5V5.707L5.354 7.854a.5.5 0 1 1-.708-.708l3-3a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 5.707V11h4.188C14.502 11 16 9.57 16 7.773c0-1.636-1.242-2.969-2.834-3.194C12.923 1.999 10.69 0 8 0m-.5 14.5V11h1v3.5a.5.5 0 0 1-1 0"
+                                        />
+                                    </svg>
+                                    OTA
+                                </h5>
+                                <small
+                                    >Set your username and password to allow
+                                    firmware updating over-the-air.</small
+                                >
+                            </div>
+                            <div class="col-lg-9 col-sm-12">
+                                <div class="row">
+                                    <div class="col-6">
+                                        <label for="ota.username" class="form-label"
+                                            >Username</label
+                                        >
+                                        <input
+                                            type="text"
+                                            name="ota.username"
+                                            id="ota.username"
+                                            class="form-control"
+                                        />
+                                    </div>
+                                    <div class="col-6">
+                                        <label for="ota.password" class="form-label"
+                                            >Password</label
+                                        >
+                                        <input
+                                            type="password"
+                                            name="ota.password"
+                                            id="ota.password"
+                                            class="form-control"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <hr>
+
+                        <div class="row my-5 d-flex align-items-top">
+                            <div class="col-lg-3 col-sm-12">
+                                <h5>
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="20"
+                                        height="20"
+                                        fill="currentColor"
+                                        class="bi bi-cloud-upload-fill"
+                                        viewBox="0 0 16 16"
+                                    >
+                                        <path
+                                            fill-rule="evenodd"
+                                            d="M8 0a5.53 5.53 0 0 0-3.594 1.342c-.766.66-1.321 1.52-1.464 2.383C1.266 4.095 0 5.555 0 7.318 0 9.366 1.708 11 3.781 11H7.5V5.707L5.354 7.854a.5.5 0 1 1-.708-.708l3-3a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 5.707V11h4.188C14.502 11 16 9.57 16 7.773c0-1.636-1.242-2.969-2.834-3.194C12.923 1.999 10.69 0 8 0m-.5 14.5V11h1v3.5a.5.5 0 0 1-1 0"
+                                        />
+                                    </svg>
+                                    Admin
+                                </h5>
+                                <small
+                                    >Set your username and password to allow
+                                    access to the web interface.</small
+                                >
+                            </div>
+                            <div class="col-lg-9 col-sm-12">
+                                <div class="col-6">
+                                    <div class="form-check form-switch">
+                                        <input
+                                            type="checkbox"
+                                            name="webadmin.active"
+                                            id="webadmin.active"
+                                            class="form-check-input"
+                                        />
+                                        <label
+                                            for="webadmin.active"
+                                            class="form-label"
+                                            >Web interface authentication</label
+                                        >
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-6">
+                                        <label for="webadmin.username" class="form-label"
+                                            >Username</label
+                                        >
+                                        <input
+                                            type="text"
+                                            name="webadmin.username"
+                                            id="webadmin.username"
+                                            class="form-control"
+                                            value="admin"
+                                            required=""
+                                        />
+                                    </div>
+                                    <div class="col-6">
+                                        <label for="webadmin.password" class="form-label"
+                                            >Password</label
+                                        >
+                                        <input
+                                            type="password"
+                                            name="webadmin.password"
+                                            id="webadmin.password"
+                                            class="form-control"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <hr>
+
+                        <div class="row my-5 d-flex align-items-top">
+                            <div class="col-lg-3 col-sm-12">
+                                <h5>
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="20"
+                                        height="20"
+                                        fill="currentColor"
+                                        class="bi bi-cloud-upload-fill"
+                                        viewBox="0 0 16 16"
+                                    >
+                                        <path
+                                            fill-rule="evenodd"
+                                            d="M8 0a5.53 5.53 0 0 0-3.594 1.342c-.766.66-1.321 1.52-1.464 2.383C1.266 4.095 0 5.555 0 7.318 0 9.366 1.708 11 3.781 11H7.5V5.707L5.354 7.854a.5.5 0 1 1-.708-.708l3-3a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 5.707V11h4.188C14.502 11 16 9.57 16 7.773c0-1.636-1.242-2.969-2.834-3.194C12.923 1.999 10.69 0 8 0m-.5 14.5V11h1v3.5a.5.5 0 0 1-1 0"
+                                        />
+                                    </svg>
+                                    Remote Management
+                                </h5>
+                                <small
+                                    >Manage Station via APRS Messages. Leave empty to disable!
+                                </small>
+                            </div>
+                            <div class="col-lg-9 col-sm-12">
+                                <div class="col-12">
+                                    <label
+                                        for="remoteManagement.managers"
+                                        class="form-label"
+                                        >Callsign-SSID of Managers, space separated, trailing * wildcard allowed (ex: AB1CDE-9, AB1CDE*)</label
+                                    >
+                                    <div class="input-group">
+                                        <input
+                                            type="text"
+                                            name="remoteManagement.managers"
+                                            id="remoteManagement.managers"
+                                            class="form-control"
+                                            oninput="this.value = this.value.toUpperCase();"
+                                        />
+                                    </div>
+                                </div>
+                                <div class="col-12 mt-3">
+                                    <div class="form-check form-switch">
+                                        <input
+                                            type="checkbox"
+                                            name="remoteManagement.rfOnly"
+                                            id="remoteManagement.rfOnly"
+                                            class="form-check-input"
+                                        />
+                                        <label
+                                            for="remoteManagement.rfOnly"
+                                            class="form-label"
+                                            >Managers commands only via RF (not APRS-IS)</label
+                                        >
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <hr>
+
+                        <div class="row my-5 d-flex align-items-top">
+                            <div class="col-lg-3 col-sm-12">
+                                <h5>
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="20"
+                                        height="20"
+                                        fill="currentColor"
+                                        class="bi bi-cloud-upload-fill"
+                                        viewBox="0 0 16 16"
+                                    >
+                                        <path
+                                            fill-rule="evenodd"
+                                            d="M8 0a5.53 5.53 0 0 0-3.594 1.342c-.766.66-1.321 1.52-1.464 2.383C1.266 4.095 0 5.555 0 7.318 0 9.366 1.708 11 3.781 11H7.5V5.707L5.354 7.854a.5.5 0 1 1-.708-.708l3-3a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 5.707V11h4.188C14.502 11 16 9.57 16 7.773c0-1.636-1.242-2.969-2.834-3.194C12.923 1.999 10.69 0 8 0m-.5 14.5V11h1v3.5a.5.5 0 0 1-1 0"
+                                        />
+                                    </svg>
+                                    NTP
+                                </h5>
+                                <small
+                                    >Set your GMT Time Zone.
+                                </small>
+                            </div>
+                            <div class="col-lg-9 col-sm-12">
+                                <div class="row">
+                                    <div class="col-lg-4 col-12">
+                                        <label
+                                            for="ntp.server"
+                                            class="form-label"
+                                            >NTP Server hostname</label
+                                        >
+                                        <div class="input-group">
+                                            <input
+                                                type="text"
+                                                name="ntp.server"
+                                                id="ntp.server"
+                                                class="form-control"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div class="col-lg-4 col-12 mt-3 mt-lg-0">
+                                        <label
+                                            for="ntp.gmtCorrection"
+                                            class="form-label"
+                                            >GMT Time Correction Offset</label
+                                        >
+                                        <div class="input-group">
+                                            <input
+                                                type="number"
+                                                name="ntp.gmtCorrection"
+                                                id="ntp.gmtCorrection"
+                                                placeholder="0"
+                                                class="form-control"
+                                                step="0.25"
+                                                min="-23.75"
+                                                max="23.75"
+                                            />
+                                            <span class="input-group-text"
+                                                >hours</span
+                                            >
+                                        </div>
+                                    </div>
+                                    <div class="col-lg-4 col-12 mt-3 mt-lg-0">
+                                        <label class="form-label">Current device time</label>
+                                        <div class="device-time" id="device-time">
+                                            <strong id="device-time-value">Checking NTP…</strong>
+                                            <span id="device-time-status">Waiting for the device clock</span>
+                                        </div>
+                                        <div class="feature-help">Time reported by the iGate after applying the GMT correction above.</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <hr>
+                    </div>
+                </main>
+<footer class="firmware-footer">
+  <p>Thank you to <a href="https://github.com/richonguzman/LoRa_APRS_iGate" target="_blank" rel="noopener">CA2RXU</a> for creating the original LoRa APRS iGate project.</p>
+  <p><strong>2E0LXY firmware</strong> · Interface and feature development by 2E0LXY · <a href="https://github.com/2E0LXY/2E0LXY-LoRa-APRS-iGate" target="_blank" rel="noopener">Source code and downloads</a></p>
+  <p class="firmware-footer__legal">Copyright © 2026 2E0LXY for original modifications · Based on CA2RXU firmware · <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank" rel="noopener">GNU GPLv3</a> · Supplied without warranty</p>
+</footer>
+            </div>
+        </form>
+        <div
+            class="modal fade"
+            id="saveModal"
+            tabindex="-1"
+            aria-labelledby="saveModal"
+            aria-hidden="true"
+        >
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Saving settings</h5>
+                    </div>
+                    <div class="modal-body">
+                        Please wait... Settings will be saved and LoRa will
+                        reboot
+                    </div>
+                    <div class="modal-footer">Waiting for connection...</div>
+                </div>
+            </div>
+        </div>
+        <div
+            class="modal fade"
+            id="savedModal"
+            tabindex="-1"
+            aria-labelledby="saveModal"
+            aria-hidden="true"
+        >
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Settings</h5>
+                        <button
+                            type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal"
+                            aria-label="Close"
+                        ></button>
+                    </div>
+                    <div class="modal-body">Settings saved!</div>
+                    <div class="modal-footer">
+                        <button
+                            type="button"
+                            class="btn btn-secondary"
+                            data-bs-dismiss="modal"
+                        >
+                            Close
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+            <div id="toast" class="toast hide" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="toast-header">
+                    <strong class="me-auto">System Message</strong>
+                    <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+                <div class="toast-body text-center"></div>
+            </div>
+        </div>
+    </body>
+    <script src="/bootstrap.js"></script>
+    <script src="/script.js"></script>
+</html>
