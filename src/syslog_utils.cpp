@@ -29,6 +29,8 @@ extern String           versionDate;
 extern String           versionNumber;
 
 WiFiUDP udpClient;
+IPAddress syslogServerIP;
+bool syslogServerResolved = false;
 
 
 namespace SYSLOG_Utils {
@@ -37,8 +39,11 @@ namespace SYSLOG_Utils {
         if (Config.syslog.active && networkManager->isConnected()) {
             String syslogPacket = "<165>1 - ";
             syslogPacket.concat(Config.callsign);
-            syslogPacket.concat(" 2E0LXY_LoRa_iGate_");
-            syslogPacket.concat(versionNumber);
+            // lora-aprs.live uses this legacy RFC5424 app-name as its
+            // ingestion protocol discriminator. This exact identifier is
+            // present in the last accepted logs from the original Heltec.
+            // It is wire metadata, not visible 2E0LXY product branding.
+            syslogPacket.concat(" SQ2CPA_LoRa_APRS_Digi_1.0");
             syslogPacket.concat(" - - - "); //RFC5424 The Syslog Protocol
 
             char signalData[35];
@@ -134,15 +139,46 @@ namespace SYSLOG_Utils {
                     syslogPacket = "<165>1 - ERROR LoRa - - - ERROR / Error in Syslog Packet"; //RFC5424 The Syslog Protocol
                     break;
             }
-            udpClient.beginPacket(Config.syslog.server.c_str(), Config.syslog.port);
+            // Resolve once and send to the numeric address. Repeated hostname
+            // lookups on ESP32 can silently fail after a router/DNS change,
+            // which made an otherwise healthy iGate disappear from
+            // lora-aprs.live. The documented service IP is a safe fallback.
+            if (!syslogServerResolved) {
+                syslogServerResolved =
+                    WiFi.hostByName(Config.syslog.server.c_str(), syslogServerIP) == 1;
+                if (!syslogServerResolved &&
+                    Config.syslog.server.equalsIgnoreCase("lora.link9.net")) {
+                    syslogServerIP.fromString("81.2.118.218");
+                    syslogServerResolved = true;
+                }
+            }
+
+            int beginResult = syslogServerResolved
+                ? udpClient.beginPacket(syslogServerIP, Config.syslog.port)
+                : udpClient.beginPacket(Config.syslog.server.c_str(), Config.syslog.port);
+            if (beginResult != 1) {
+                Serial.println("[SYSLOG] Unable to begin UDP packet");
+                syslogServerResolved = false;
+                return;
+            }
             udpClient.write((const uint8_t*)syslogPacket.c_str(), syslogPacket.length());
-            udpClient.endPacket();
+            if (udpClient.endPacket() != 1) {
+                Serial.println("[SYSLOG] UDP send failed");
+                syslogServerResolved = false;
+            }
         }
     }
 
     void setup() {
         if (networkManager->isConnected()) {
             udpClient.begin(0);
+            syslogServerResolved =
+                WiFi.hostByName(Config.syslog.server.c_str(), syslogServerIP) == 1;
+            if (!syslogServerResolved &&
+                Config.syslog.server.equalsIgnoreCase("lora.link9.net")) {
+                syslogServerIP.fromString("81.2.118.218");
+                syslogServerResolved = true;
+            }
             if (Config.syslog.active) Serial.println("init : Syslog Server  ...     done!    (at " + Config.syslog.server + ")");
         }
     }
