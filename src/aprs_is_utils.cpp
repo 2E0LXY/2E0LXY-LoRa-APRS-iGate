@@ -85,7 +85,7 @@ namespace APRS_IS_Utils {
             aprsAuth += Config.callsign;
             aprsAuth += " pass ";
             aprsAuth += Config.aprs_is.passcode;
-            aprsAuth += " vers CA2RXUiGate ";
+            aprsAuth += " vers 2E0LXY-iGate ";
             aprsAuth += versionNumber;
             aprsAuth += " filter ";
             aprsAuth += Config.aprs_is.filter;

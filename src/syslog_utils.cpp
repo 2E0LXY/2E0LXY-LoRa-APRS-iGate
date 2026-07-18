@@ -37,7 +37,7 @@ namespace SYSLOG_Utils {
         if (Config.syslog.active && networkManager->isConnected()) {
             String syslogPacket = "<165>1 - ";
             syslogPacket.concat(Config.callsign);
-            syslogPacket.concat(" CA2RXU_LoRa_iGate_");
+            syslogPacket.concat(" 2E0LXY_LoRa_iGate_");
             syslogPacket.concat(versionNumber);
             syslogPacket.concat(" - - - "); //RFC5424 The Syslog Protocol
 

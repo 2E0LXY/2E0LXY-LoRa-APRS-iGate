@@ -171,7 +171,9 @@
             loginInfo += Config.callsign;
             loginInfo += " pass ";
             loginInfo += String(Config.aprs_is.passcode);
-            loginInfo += " vers CA2RXU_LoRa_iGate 1.3 filter ";
+            loginInfo += " vers 2E0LXY-iGate ";
+            loginInfo += versionNumber;
+            loginInfo += " filter ";
             loginInfo += Config.aprs_is.filter;
             Serial.println("-----> Connecting to APRS IS");
             while (!modemStartUp) {

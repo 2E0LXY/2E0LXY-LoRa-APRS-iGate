@@ -1,0 +1,16 @@
+{
+  "name": "2E0LXY LoRa APRS iGate",
+  "version": "1.0.1",
+  "new_install_prompt_erase": true,
+  "builds": [
+    {
+      "chipFamily": "ESP32-S3",
+      "parts": [
+        {
+          "path": "firmware/2E0LXY-Heltec-V3.2-full-flash.bin",
+          "offset": 0
+        }
+      ]
+    }
+  ]
+}

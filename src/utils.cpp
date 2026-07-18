@@ -129,7 +129,7 @@ namespace Utils {
         } else {
             Serial.println("ON / Only Serial Output)");
         }
-        displayShow(" LoRa APRS", "", "", "   ( iGATE & DIGI )", "", "" , "  CA2RXU  " + versionDate, 4000);
+        displayShow("  2E0LXY", "", "", " LoRa APRS iGate", "", "" , "  " + versionDate, 4000);
         #ifdef INTERNAL_LED_PIN
             digitalWrite(INTERNAL_LED_PIN,LOW);
         #endif

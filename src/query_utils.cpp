@@ -43,7 +43,7 @@ namespace QUERY_Utils {
         if (queryQuestion == "?APRS?" || queryQuestion == "H" || queryQuestion == "HELP" || queryQuestion=="?") {
             answer.concat("?APRSV ?APRSP ?APRSL ?APRSSR ?EM=? ?TX=? "); // ?APRSH ?WHERE callsign
         } else if (queryQuestion == "?APRSV") {
-            answer.concat("CA2RXU_LoRa_iGate v");
+            answer.concat("2E0LXY_LoRa_iGate v");
             answer.concat(versionNumber);
             answer.concat(" ");
             answer.concat(versionDate);
