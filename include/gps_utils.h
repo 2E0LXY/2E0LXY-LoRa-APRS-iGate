@@ -37,6 +37,8 @@ namespace GPS_Utils {
     void    getData();
     bool    hasReceivedData();
     uint32_t lastByteAgeMs();
+    uint32_t currentBaud();
+    bool    isBaudScanning();
 
 }
 

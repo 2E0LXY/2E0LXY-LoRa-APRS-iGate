@@ -38,6 +38,13 @@ extern bool             stationCallsignIsValid;
 String                  distance, iGateBeaconPacket, iGateLoRaBeaconPacket;
 static bool             gpsDataReceived = false;
 static uint32_t         gpsLastByteMillis = 0;
+static uint32_t         gpsCurrentBaud = GPS_BAUD;
+static uint32_t         gpsLastBaudSwitchMillis = 0;
+static uint8_t          gpsBaudIndex = 0;
+static bool             gpsBaudLocked = false;
+static const uint32_t   gpsBaudCandidates[] = {9600, 38400, 115200, 4800};
+static const uint8_t    gpsBaudCandidateCount =
+    sizeof(gpsBaudCandidates) / sizeof(gpsBaudCandidates[0]);
 
 
 namespace GPS_Utils {
@@ -190,17 +197,43 @@ namespace GPS_Utils {
     void setup() {
         #ifdef HAS_GPS
             if (Config.beacon.gpsActive && Config.digi.ecoMode != 1) {
-                gpsSerial.begin(GPS_BAUD, SERIAL_8N1, GPS_TX, GPS_RX);
+                for (uint8_t i = 0; i < gpsBaudCandidateCount; i++) {
+                    if (gpsBaudCandidates[i] == GPS_BAUD) {
+                        gpsBaudIndex = i;
+                        break;
+                    }
+                }
+                gpsCurrentBaud = gpsBaudCandidates[gpsBaudIndex];
+                gpsSerial.begin(gpsCurrentBaud, SERIAL_8N1, GPS_TX, GPS_RX);
+                gpsLastBaudSwitchMillis = millis();
             }
         #endif
         generateBeacons();
     }
 
     void getData() {
+        const uint32_t passedBefore = gps.passedChecksum();
         while (gpsSerial.available() > 0) {
             gpsDataReceived = true;
             gpsLastByteMillis = millis();
             gps.encode(gpsSerial.read());
+        }
+
+        if (gps.passedChecksum() > passedBefore || gps.passedChecksum() > 0) {
+            gpsBaudLocked = true;
+        }
+
+        // Many low-cost GNSS modules ship at 9600 baud, but 38400, 115200
+        // and 4800 are also common. Until a checksum-valid NMEA sentence is
+        // decoded, try each rate without blocking the main iGate loop.
+        if (!gpsBaudLocked && millis() - gpsLastBaudSwitchMillis >= 7000) {
+            gpsBaudIndex = (gpsBaudIndex + 1) % gpsBaudCandidateCount;
+            gpsCurrentBaud = gpsBaudCandidates[gpsBaudIndex];
+            gpsSerial.end();
+            gpsSerial.begin(gpsCurrentBaud, SERIAL_8N1, GPS_TX, GPS_RX);
+            gpsLastBaudSwitchMillis = millis();
+            Serial.printf("[GPS] No valid NMEA yet; trying %lu baud\n",
+                static_cast<unsigned long>(gpsCurrentBaud));
         }
     }
 
@@ -210,6 +243,14 @@ namespace GPS_Utils {
 
     uint32_t lastByteAgeMs() {
         return gpsDataReceived ? millis() - gpsLastByteMillis : UINT32_MAX;
+    }
+
+    uint32_t currentBaud() {
+        return gpsCurrentBaud;
+    }
+
+    bool isBaudScanning() {
+        return !gpsBaudLocked;
     }
 
 }

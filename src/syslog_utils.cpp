@@ -39,11 +39,10 @@ namespace SYSLOG_Utils {
         if (Config.syslog.active && networkManager->isConnected()) {
             String syslogPacket = "<165>1 - ";
             syslogPacket.concat(Config.callsign);
-            // lora-aprs.live uses this legacy RFC5424 app-name as its
-            // ingestion protocol discriminator. This exact identifier is
-            // present in the last accepted logs from the original Heltec.
-            // It is wire metadata, not visible 2E0LXY product branding.
-            syslogPacket.concat(" SQ2CPA_LoRa_APRS_Digi_1.0");
+            // lora-aprs.live currently recognises this legacy wire identifier.
+            // The public device name shown by APRS maps is controlled separately
+            // by the registered APRS destination (tocall).
+            syslogPacket.concat(" CA2RXU_LoRa_iGate_3.2.4");
             syslogPacket.concat(" - - - "); //RFC5424 The Syslog Protocol
 
             char signalData[35];

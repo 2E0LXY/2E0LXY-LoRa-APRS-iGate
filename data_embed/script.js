@@ -108,8 +108,10 @@ async function refreshGPS() {
             gpsValue("gps-hardware", data.detected ? "Detected · disabled" : "Disabled");
         } else if (!data.detected) {
             state.classList.add("is-error");
-            stateText.textContent = "No GPS serial data detected";
-            gpsValue("gps-hardware", "Not detected");
+            stateText.textContent = data.baudScanning
+                ? "Searching for a valid GPS NMEA stream"
+                : "No GPS serial data detected";
+            gpsValue("gps-hardware", data.baudScanning ? "Scanning baud rates" : "Not detected");
         } else if (!data.streamCurrent) {
             state.classList.add("is-error");
             stateText.textContent = "GPS data stream has stopped";
@@ -139,7 +141,7 @@ async function refreshGPS() {
         gpsValue("gps-speed", data.fixValid ? gpsNumber(data.speedKmph, 1) : "—");
         gpsValue("gps-course", data.fixValid ? gpsNumber(data.courseDegrees, 1, "°") : "—");
         gpsValue("gps-utc", data.utc ?? "—");
-        gpsValue("gps-stream", data.detected
+        gpsValue("gps-stream", data.seenSerialData
             ? `Last serial byte ${data.lastByteAgeMs < 4294967295 ? `${(data.lastByteAgeMs / 1000).toFixed(1)} seconds ago` : "unknown"}`
             : "No NMEA data received since boot");
         gpsValue("gps-passed", data.sentencesPassed ?? "—");

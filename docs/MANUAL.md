@@ -1,6 +1,6 @@
 # 2E0LXY LoRa APRS iGate and Digipeater Manual
 
-Version 1.1.2 - Heltec WiFi LoRa 32 V3.2 - July 2026
+Version 1.1.4 - Heltec WiFi LoRa 32 V3.2 - July 2026
 
 ## 1. Purpose
 
@@ -34,8 +34,9 @@ SX1262 LoRa radio, 8 MB flash and onboard OLED.
 | GND | GND |
 | Power | Use the voltage required by the GPS module |
 
-The configured GPS serial rate is 9600 baud. Confirm the module voltage
-before applying power.
+The firmware starts at 9600 baud and automatically checks 38400, 115200
+and 4800 baud until it receives a checksum-valid NMEA sentence. Confirm
+the module voltage before applying power.
 
 ## 4. Installation
 
@@ -223,7 +224,7 @@ uses the same profile.
 
 ### GPS does not fix
 
-Confirm TX-to-RX crossover, GPIO 47/48, 9600 baud, antenna view of the
+Confirm TX-to-RX crossover, GPIO 47/48, automatic baud scanning, antenna view of the
 sky and adequate module power. A cold start may take several minutes.
 
 ### OTA fails
