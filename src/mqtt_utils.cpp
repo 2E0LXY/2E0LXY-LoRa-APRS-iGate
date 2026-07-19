@@ -27,14 +27,32 @@ static const uint32_t TELEMETRY_INTERVAL_MS = 60000; // every 60 s
 
 namespace MQTT_Utils {
 
+    // Returns the configured topic base, defaulting to "aprsnet" if empty.
+    // An empty Config.mqtt.topic causes paths like "/CALLSIGN" (leading slash).
+    static String mqttBaseTopic() {
+        return Config.mqtt.topic.isEmpty() ? "aprsnet" : Config.mqtt.topic;
+    }
+
     // ── Forward received LoRa packet to MQTT ──────────────────────────────
     void sendToMqtt(const String& packet) {
         if (!pubSub.connected()) return;
-        const String cleanPacket = packet.substring(3);
+        const String cleanPacket = packet.substring(3);   // strip LoRa header bytes
         const String sender      = cleanPacket.substring(0, cleanPacket.indexOf(">"));
-        const String topic       = Config.mqtt.topic + "/" + Config.mqtt.username + "/" + sender;
+        const String topic       = mqttBaseTopic() + "/" + Config.mqtt.username + "/" + sender;
         if (pubSub.publish(topic.c_str(), cleanPacket.c_str())) {
             Serial.print("MQTT TX: "); Serial.println(topic);
+        }
+    }
+
+    // ── Publish iGate's own beacon to MQTT (beaconOverMqtt flag) ─────────
+    // Uses a dedicated function because beaconPacket is already a clean APRS
+    // string — unlike received LoRa packets it has no 3-byte header to strip.
+    void publishBeaconToMqtt(const String& beaconPacket) {
+        if (!pubSub.connected()) return;
+        const String topic = mqttBaseTopic() + "/" + Config.mqtt.username
+                             + "/" + Config.callsign + "/beacon";
+        if (pubSub.publish(topic.c_str(), beaconPacket.c_str())) {
+            Serial.print("MQTT beacon TX: "); Serial.println(topic);
         }
     }
 
@@ -56,7 +74,7 @@ namespace MQTT_Utils {
         char payload[256];
         serializeJson(doc, payload);
 
-        const String topic = Config.mqtt.topic + "/" + Config.mqtt.username
+        const String topic = mqttBaseTopic() + "/" + Config.mqtt.username
                              + "/" + Config.callsign + "/telemetry";
         pubSub.publish(topic.c_str(), payload);
         Serial.println("MQTT telemetry published");
@@ -112,7 +130,7 @@ namespace MQTT_Utils {
         if (connected) {
             Serial.println(" OK");
             // Subscribe to command topic: aprsnet/{owner}/{device}/cmd
-            const String cmdTopic = Config.mqtt.topic + "/" + Config.mqtt.username
+            const String cmdTopic = mqttBaseTopic() + "/" + Config.mqtt.username
                                     + "/" + Config.callsign + "/cmd";
             pubSub.subscribe(cmdTopic.c_str());
             Serial.print("MQTT subscribed: "); Serial.println(cmdTopic);
