@@ -74,42 +74,34 @@ namespace {
     uint32_t scanStartedAt = 0;
 
     #ifdef HELTEC_V4
-    enum class HeltecV4Fem { GC1109, KCT8103L };
-    HeltecV4Fem heltecV4Fem = HeltecV4Fem::GC1109;
-
     void setupHeltecV4Fem() {
         pinMode(LORA_PA_POWER, OUTPUT);
         digitalWrite(LORA_PA_POWER, HIGH);
         delay(5);
-        pinMode(LORA_FEM_CSD, INPUT);
-        delay(1);
-        heltecV4Fem = digitalRead(LORA_FEM_CSD) == HIGH
-            ? HeltecV4Fem::KCT8103L : HeltecV4Fem::GC1109;
         pinMode(LORA_FEM_CSD, OUTPUT);
         digitalWrite(LORA_FEM_CSD, HIGH);
-        if (heltecV4Fem == HeltecV4Fem::GC1109) {
-            pinMode(LORA_GC1109_CPS, OUTPUT);
-            digitalWrite(LORA_GC1109_CPS, LOW);
-            Utils::println("Heltec V4 RF front end: GC1109");
-        } else {
-            pinMode(LORA_KCT8103L_CTX, OUTPUT);
-            digitalWrite(LORA_KCT8103L_CTX, LOW);
-            Utils::println("Heltec V4 RF front end: KCT8103L");
-        }
+        // V4.2 (GC1109) and V4.3 (KCT8103L) do not provide a reliable
+        // software-readable board-revision strap. Driving both revision-specific
+        // mode pins keeps the fitted FEM in LNA mode without guessing the board.
+        pinMode(LORA_GC1109_CPS, OUTPUT);
+        pinMode(LORA_KCT8103L_CTX, OUTPUT);
+        digitalWrite(LORA_GC1109_CPS, LOW);
+        digitalWrite(LORA_KCT8103L_CTX, LOW);
+        Utils::println("Heltec V4 RF front end initialized (V4.2/V4.3)");
     }
 
     void setHeltecV4TxMode() {
         digitalWrite(LORA_PA_POWER, HIGH);
         digitalWrite(LORA_FEM_CSD, HIGH);
-        digitalWrite(heltecV4Fem == HeltecV4Fem::GC1109
-            ? LORA_GC1109_CPS : LORA_KCT8103L_CTX, HIGH);
+        digitalWrite(LORA_GC1109_CPS, HIGH);
+        digitalWrite(LORA_KCT8103L_CTX, HIGH);
     }
 
     void setHeltecV4RxMode() {
         digitalWrite(LORA_PA_POWER, HIGH);
         digitalWrite(LORA_FEM_CSD, HIGH);
-        digitalWrite(heltecV4Fem == HeltecV4Fem::GC1109
-            ? LORA_GC1109_CPS : LORA_KCT8103L_CTX, LOW);
+        digitalWrite(LORA_GC1109_CPS, LOW);
+        digitalWrite(LORA_KCT8103L_CTX, LOW);
     }
     #endif
 
@@ -120,6 +112,13 @@ namespace {
             hash *= 16777619UL;
         }
         return hash;
+    }
+
+    bool isStructurallyValidLoRaAprsFrame(const String& packet) {
+        if (packet.length() < 10 || !packet.startsWith("\x3c\xff\x01")) return false;
+        const int separator = packet.indexOf('>', 3);
+        const int info = packet.indexOf(':', separator + 1);
+        return separator >= 7 && info > separator + 1 && info + 1 < packet.length();
     }
 
     bool isDuplicatePacket(const String& packet) {
@@ -232,8 +231,9 @@ namespace LoRa_Utils {
         #endif
         #ifdef HELTEC_V4
             // V4 includes an external PA. Treat the configured value as approximate
-            // antenna output and compensate for the front-end gain.
-            state = radio.setOutputPower(constrain(Config.loramodule.power - 11, -9, 17));
+            // antenna output. Use a conservative compensation that is safe for
+            // both the V4.2 GC1109 and V4.3 KCT8103L front ends.
+            state = radio.setOutputPower(constrain(Config.loramodule.power - 12, -9, 17));
             radio.setCurrentLimit(140);
         #elif (defined(HAS_SX1268) || defined(HAS_SX1262)) && !defined(HAS_1W_LORA)
             state = radio.setOutputPower(Config.loramodule.power + 2); // values available: 10, 17, 22 --> if 20 in tracker_conf.json it will be updated to 22.
@@ -355,42 +355,47 @@ namespace LoRa_Utils {
                 int state = radio.readData(packet);
                 if (state == RADIOLIB_ERR_NONE) {
                     if (packet != "") {
-
-                        String sender   = packet.substring(3, packet.indexOf(">"));
-                        if (packet.substring(0,3) == "\x3c\xff\x01" && !STATION_Utils::isBlacklisted(sender)) {     // avoid processing BlackListed stations
-                            rssi        = radio.getRSSI();
-                            snr         = radio.getSNR();
-                            freqError   = radio.getFrequencyError();
-                            radioDiagnostics.rxValid++;
-                            updateHeardStation(sender, rssi, snr, freqError);
-                            if (isDuplicatePacket(packet.substring(3))) {
-                                radioDiagnostics.rxDuplicates++;
-                                Utils::println("Duplicate RF packet suppressed: " + sender);
-                                packet = "";
-                                lastRxTime = millis();
-                                return packet;
-                            }
-                            Utils::println("<--- LoRa Packet Rx : " + packet.substring(3));
-                            Utils::println("(RSSI:" + String(rssi) + " / SNR:" + String(snr) + " / FreqErr:" + String(freqError) + ")");
-
-                            if (Config.digi.ecoMode == 0) {
-                                if (receivedPackets.size() >= 50) {
-                                    receivedPackets.erase(receivedPackets.begin());
-                                }
-                                ReceivedPacket receivedPacket;
-                                receivedPacket.packetTime = NTP_Utils::getFormatedTime();
-                                receivedPacket.direction  = "RX";
-                                receivedPacket.packet     = packet.substring(3);
-                                receivedPacket.RSSI       = rssi;
-                                receivedPacket.SNR        = snr;
-                                receivedPackets.push_back(receivedPacket);
-                            }
-
-                            if (Config.syslog.active && networkManager->isConnected()) {
-                                SYSLOG_Utils::log(1, packet, rssi, snr, freqError); // RX
-                            }
-                        } else {
+                        if (!isStructurallyValidLoRaAprsFrame(packet)) {
+                            radioDiagnostics.rxOtherErrors++;
+                            Utils::println("Invalid LoRa APRS frame rejected");
                             packet = "";
+                        } else {
+                            String sender = packet.substring(3, packet.indexOf('>', 3));
+                            if (STATION_Utils::isBlacklisted(sender)) {
+                                packet = "";
+                            } else {
+                                rssi        = radio.getRSSI();
+                                snr         = radio.getSNR();
+                                freqError   = radio.getFrequencyError();
+                                radioDiagnostics.rxValid++;
+                                updateHeardStation(sender, rssi, snr, freqError);
+                                if (isDuplicatePacket(packet.substring(3))) {
+                                    radioDiagnostics.rxDuplicates++;
+                                    Utils::println("Duplicate RF packet suppressed: " + sender);
+                                    packet = "";
+                                    lastRxTime = millis();
+                                    return packet;
+                                }
+                                Utils::println("<--- LoRa Packet Rx : " + packet.substring(3));
+                                Utils::println("(RSSI:" + String(rssi) + " / SNR:" + String(snr) + " / FreqErr:" + String(freqError) + ")");
+
+                                if (Config.digi.ecoMode == 0) {
+                                    if (receivedPackets.size() >= 50) {
+                                        receivedPackets.erase(receivedPackets.begin());
+                                    }
+                                    ReceivedPacket receivedPacket;
+                                    receivedPacket.packetTime = NTP_Utils::getFormatedTime();
+                                    receivedPacket.direction  = "RX";
+                                    receivedPacket.packet     = packet.substring(3);
+                                    receivedPacket.RSSI       = rssi;
+                                    receivedPacket.SNR        = snr;
+                                    receivedPackets.push_back(receivedPacket);
+                                }
+
+                                if (Config.syslog.active && networkManager->isConnected()) {
+                                    SYSLOG_Utils::log(1, packet, rssi, snr, freqError); // RX
+                                }
+                            }
                         }
                         lastRxTime = millis();
                         return packet;

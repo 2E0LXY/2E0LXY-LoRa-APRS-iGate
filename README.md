@@ -64,7 +64,11 @@ connected until installation completes.
 | Coding rate | `4/5` |
 | GPS (Heltec V3.2) | GPIO 47 RX, GPIO 48 TX, automatic baud detection |
 | GPS (Heltec V4 connector) | GPIO 38 RX, GPIO 39 TX, automatic baud detection |
-| Heltec V4 RF front end | Automatic GC1109 (V4.2) / KCT8103L (V4.3) detection |
+| Heltec V4 RF front end | Compatible control for GC1109 (V4.2) and KCT8103L (V4.3) |
+
+For Heltec V4, enabling live GPS also enables the GNSS rail on GPIO34
+and releases standby on GPIO40. The firmware applies conservative output-power
+compensation compatible with both documented RF front ends.
 
 ## Interface
 

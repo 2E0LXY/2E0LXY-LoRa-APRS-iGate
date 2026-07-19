@@ -64,6 +64,10 @@
     #define GPS_BAUDRATE            9600
     #define GPS_TX                  38
     #define GPS_RX                  39
+    #define GPS_POWER_PIN           34
+    #define GPS_POWER_ON_STATE      LOW
+    #define GPS_STANDBY_PIN         40
+    #define GPS_STANDBY_ON_STATE    HIGH
 
     //  V4.2 GC1109 / V4.3 KCT8103L RF front end
     #define LORA_PA_POWER           7

@@ -30,19 +30,13 @@ bool Configuration::writeFile() {
     Serial.println("Saving configuration...");
 
     JsonDocument data;
-    File configFile = SPIFFS.open("/igate_conf.json", "w");
-
-    if (!configFile) {
-        Serial.println("Error: Could not open config file for writing");
-        return false;
-    }
     try {
-
-        if (wifiAPs[0].ssid != "") { // We don't want to save Auto AP empty SSID
-            for (int i = 0; i < wifiAPs.size(); i++) {
-                data["wifi"]["AP"][i]["ssid"] = wifiAPs[i].ssid;
-                data["wifi"]["AP"][i]["password"] = wifiAPs[i].password;
-            }
+        size_t savedAPCount = 0;
+        for (size_t i = 0; i < wifiAPs.size() && savedAPCount < 10; i++) {
+            if (wifiAPs[i].ssid.isEmpty()) continue; // Do not persist the Auto AP placeholder.
+            data["wifi"]["AP"][savedAPCount]["ssid"] = wifiAPs[i].ssid;
+            data["wifi"]["AP"][savedAPCount]["password"] = wifiAPs[i].password;
+            savedAPCount++;
         }
 
         data["other"]["startupDelay"]               = startupDelay;
@@ -193,12 +187,39 @@ bool Configuration::writeFile() {
 
         data["other"]["rememberStationTime"]        = rememberStationTime;
 
-        serializeJson(data, configFile);
+        File configFile = SPIFFS.open("/igate_conf.tmp", "w");
+        if (!configFile) {
+            Serial.println("Error: Could not open temporary config file for writing");
+            return false;
+        }
+        const size_t bytesWritten = serializeJson(data, configFile);
+        configFile.flush();
         configFile.close();
+
+        if (bytesWritten == 0) {
+            Serial.println("Error: Configuration serialization produced no data");
+            SPIFFS.remove("/igate_conf.tmp");
+            return false;
+        }
+
+        // Keep the last valid file until the replacement has been serialized.
+        SPIFFS.remove("/igate_conf.bak");
+        if (SPIFFS.exists("/igate_conf.json") &&
+            !SPIFFS.rename("/igate_conf.json", "/igate_conf.bak")) {
+            Serial.println("Error: Could not preserve existing config file");
+            SPIFFS.remove("/igate_conf.tmp");
+            return false;
+        }
+        if (!SPIFFS.rename("/igate_conf.tmp", "/igate_conf.json")) {
+            Serial.println("Error: Could not install replacement config file");
+            SPIFFS.rename("/igate_conf.bak", "/igate_conf.json");
+            return false;
+        }
+        SPIFFS.remove("/igate_conf.bak");
         return true;
     } catch (...) {
         Serial.println("Error: Exception occurred while saving config");
-        configFile.close();
+        SPIFFS.remove("/igate_conf.tmp");
         return false;
     }
 }
@@ -215,13 +236,14 @@ bool Configuration::readFile() {
             Serial.println("Failed to read file, using default configuration");
         }
 
+        wifiAPs.clear();
         JsonArray WiFiArray = data["wifi"]["AP"];
-        for (int i = 0; i < WiFiArray.size(); i++) {
+        for (size_t i = 0; i < WiFiArray.size() && wifiAPs.size() < 10; i++) {
             WiFi_AP wifiap;
             wifiap.ssid                   = WiFiArray[i]["ssid"].as<String>();
             wifiap.password               = WiFiArray[i]["password"].as<String>();
 
-            wifiAPs.push_back(wifiap);
+            if (!wifiap.ssid.isEmpty()) wifiAPs.push_back(wifiap);
         }
 
         if (data["other"]["startupDelay"].isNull()) needsRewrite = true;
@@ -317,12 +339,12 @@ bool Configuration::readFile() {
             data["lora"]["txSignalBandwidth"].isNull() ||
             data["lora"]["power"].isNull()) needsRewrite = true;
         loramodule.rxActive             = data["lora"]["rxActive"] | true;
-        loramodule.rxFreq               = data["lora"]["rxFreq"] | 433775000;
+        loramodule.rxFreq               = data["lora"]["rxFreq"] | 439912500;
         loramodule.rxSpreadingFactor    = data["lora"]["rxSpreadingFactor"] | 12;
         loramodule.rxCodingRate4        = data["lora"]["rxCodingRate4"] | 5;
         loramodule.rxSignalBandwidth    = data["lora"]["rxSignalBandwidth"] | 125000;
         loramodule.txActive             = data["lora"]["txActive"] | false;
-        loramodule.txFreq               = data["lora"]["txFreq"] | 433775000;
+        loramodule.txFreq               = data["lora"]["txFreq"] | 439912500;
         loramodule.txSpreadingFactor    = data["lora"]["txSpreadingFactor"] | 12;
         loramodule.txCodingRate4        = data["lora"]["txCodingRate4"] | 5;
         loramodule.txSignalBandwidth    = data["lora"]["txSignalBandwidth"] | 125000;
@@ -516,12 +538,12 @@ void Configuration::setDefaultValues() {
     digi.backupDigiMode             = false;
 
     loramodule.rxActive             = true;
-    loramodule.rxFreq               = 433775000;
+    loramodule.rxFreq               = 439912500;
     loramodule.rxSpreadingFactor    = 12;
     loramodule.rxCodingRate4        = 5;
     loramodule.rxSignalBandwidth    = 125000;
     loramodule.txActive             = false;
-    loramodule.txFreq               = 433775000;
+    loramodule.txFreq               = 439912500;
     loramodule.txSpreadingFactor    = 12;
     loramodule.txCodingRate4        = 5;
     loramodule.txSignalBandwidth    = 125000;

@@ -103,7 +103,7 @@ body{margin:0;background:#061321;color:#e8f3ff;font-family:system-ui,sans-serif}
 <div id="status" class="status">Contacting GitHub…</div><div class="actions"><button id="install" disabled>Install latest firmware</button><button id="check">Check again</button><a href="/update">Manual firmware upload</a></div>
 <div class="warning"><strong>Before updating:</strong> keep the iGate powered and connected to Wi-Fi. Configuration is retained. The device verifies the firmware write before rebooting.</div>
 </section></main><script>
-const current='v1.1.7',assetName='OTA_ASSET_NAME',boardName='OTA_BOARD_NAME',api='https://api.github.com/repos/2E0LXY/2E0LXY-LoRa-APRS-iGate/releases/latest';let asset=null;
+const current='v1.1.8',assetName='OTA_ASSET_NAME',boardName='OTA_BOARD_NAME',api='https://api.github.com/repos/2E0LXY/2E0LXY-LoRa-APRS-iGate/releases/latest';let asset=null;
 const el=id=>document.getElementById(id),parts=v=>v.replace(/^[^0-9]*/,'').split('.').map(n=>parseInt(n)||0);
 function newer(a,b){const x=parts(a),y=parts(b);for(let i=0;i<3;i++){if((x[i]||0)!==(y[i]||0))return(x[i]||0)>(y[i]||0)}return false}
 async function check(){asset=null;el('install').disabled=true;el('latest').textContent='Checking…';el('status').className='status';el('status').textContent='Contacting GitHub…';
@@ -121,8 +121,15 @@ el('check').onclick=check;el('install').onclick=install;check();
 </script></body></html>)HTML";
 
     void handleFirmwareUpdate(AsyncWebServerRequest *request) {
-        if(Config.webadmin.active && !request->authenticate(Config.webadmin.username.c_str(), Config.webadmin.password.c_str()))
+        // Authenticate this page with the same credentials ElegantOTA expects,
+        // otherwise its background /ota requests fail when web and OTA accounts differ.
+        if (Config.ota.username != "" && Config.ota.password != "") {
+            if (!request->authenticate(Config.ota.username.c_str(), Config.ota.password.c_str()))
+                return request->requestAuthentication();
+        } else if (Config.webadmin.active &&
+                   !request->authenticate(Config.webadmin.username.c_str(), Config.webadmin.password.c_str())) {
             return request->requestAuthentication();
+        }
         String page = FPSTR(firmwareUpdatePage);
         page.replace("CURRENT_VERSION", versionDate);
         #if defined(HELTEC_V4)
@@ -453,6 +460,9 @@ el('check').onclick=check;el('install').onclick=install;check();
     }
 
     void handleWriteConfiguration(AsyncWebServerRequest *request) {
+        if(Config.webadmin.active && !request->authenticate(Config.webadmin.username.c_str(), Config.webadmin.password.c_str()))
+            return request->requestAuthentication();
+
         Serial.println("Got new Configuration Data from www");
 
         auto getParamStringSafe = [&](const String& name, const String& defaultValue = "") -> String {
@@ -483,7 +493,7 @@ el('check').onclick=check;el('install').onclick=install;check();
             return defaultValue;
         };
 
-        int networks = getParamIntSafe("wifi.APs");
+        const int networks = constrain(getParamIntSafe("wifi.APs"), 0, 10);
 
         Config.wifiAPs = {};
 
@@ -492,7 +502,7 @@ el('check').onclick=check;el('install').onclick=install;check();
             wifiap.ssid                   = getParamStringSafe("wifi.AP." + String(i) + ".ssid");
             wifiap.password               = getParamStringSafe("wifi.AP." + String(i) + ".password");
 
-            Config.wifiAPs.push_back(wifiap);
+            if (wifiap.ssid.length() > 0) Config.wifiAPs.push_back(wifiap);
         }
 
         Config.startupDelay                 = getParamIntSafe("startupDelay", Config.startupDelay);

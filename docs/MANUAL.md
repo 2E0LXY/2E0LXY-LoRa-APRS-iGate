@@ -1,6 +1,6 @@
 # 2E0LXY LoRa APRS iGate and Digipeater Manual
 
-Version 1.1.7 - Heltec V3.2, Heltec V4 and LilyGO LoRa32 V2.1 - July 2026
+Version 1.1.8 - Heltec V3.2, Heltec V4 and LilyGO LoRa32 V2.1 - July 2026
 
 ## 1. Purpose
 
@@ -46,8 +46,10 @@ and 4800 baud until it receives a checksum-valid NMEA sentence. Confirm
 the module voltage before applying power.
 
 The Heltec V4 GPS connector uses GPIO38 to receive GPS TX and GPIO39 to
-transmit to GPS RX. V4.2 GC1109 and V4.3 KCT8103L RF front ends are
-detected automatically.
+transmit to GPS RX. The firmware drives the revision-specific control lines
+needed by both the V4.2 GC1109 and V4.3 KCT8103L RF front ends. GPIO34 enables
+the GNSS power rail and GPIO40
+releases the receiver from standby when live GPS is enabled.
 
 ## 4. Installation
 

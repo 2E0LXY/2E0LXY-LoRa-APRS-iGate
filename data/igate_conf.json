@@ -1,7 +1,9 @@
 {
     "callsign": "NOCALL-10",
+    "tacticalCallsign": "",
     "wifi": {
         "autoAP": {
+            "enabled": true,
             "password": "1234567890",
             "timeout": 10
         },
@@ -50,7 +52,14 @@
         "txSpreadingFactor": 12,
         "txCodingRate4": 5,
         "txSignalBandwidth": 125000,
-        "power": 20
+        "power": 20,
+        "scanActive": false,
+        "scanFreq": 0,
+        "scanSpreadingFactor": 12,
+        "scanCodingRate4": 5,
+        "scanSignalBandwidth": 125000,
+        "scanInterval": 60,
+        "scanDwell": 5
     },
     "display": {
         "alwaysOn": true,
@@ -85,7 +94,7 @@
         "enableServer": false,
         "enableSerial": false,
         "acceptOwn": false,
-        "aprsBrigdeActive": false
+        "aprsBridgeActive": false
     },
     "mqtt": {
         "active": false,
@@ -101,6 +110,7 @@
         "password": ""
     },
     "webadmin": {
+        "active": false,
         "username": "admin",
         "password": ""
     },
@@ -117,5 +127,8 @@
         "rebootMode": false,
         "rebootModeTime": 6,
         "startupDelay": 0
+    },
+    "features": {
+        "gps": false
     }
 }

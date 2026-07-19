@@ -201,6 +201,18 @@ namespace GPS_Utils {
     void setup() {
         #ifdef HAS_GPS
             if (Config.beacon.gpsActive && Config.digi.ecoMode != 1) {
+                #ifdef GPS_POWER_PIN
+                    pinMode(GPS_POWER_PIN, OUTPUT);
+                    digitalWrite(GPS_POWER_PIN, GPS_POWER_ON_STATE);
+                #endif
+                #ifdef GPS_STANDBY_PIN
+                    pinMode(GPS_STANDBY_PIN, OUTPUT);
+                    digitalWrite(GPS_STANDBY_PIN, GPS_STANDBY_ON_STATE);
+                #endif
+                #if defined(GPS_POWER_PIN) || defined(GPS_STANDBY_PIN)
+                    // Allow the receiver and its UART output to stabilize.
+                    delay(1000);
+                #endif
                 for (uint8_t i = 0; i < gpsBaudCandidateCount; i++) {
                     if (gpsBaudCandidates[i] == GPS_BAUD) {
                         gpsBaudIndex = i;
@@ -210,6 +222,15 @@ namespace GPS_Utils {
                 gpsCurrentBaud = gpsBaudCandidates[gpsBaudIndex];
                 gpsSerial.begin(gpsCurrentBaud, SERIAL_8N1, GPS_TX, GPS_RX);
                 gpsLastBaudSwitchMillis = millis();
+            } else {
+                #ifdef GPS_STANDBY_PIN
+                    pinMode(GPS_STANDBY_PIN, OUTPUT);
+                    digitalWrite(GPS_STANDBY_PIN, !GPS_STANDBY_ON_STATE);
+                #endif
+                #ifdef GPS_POWER_PIN
+                    pinMode(GPS_POWER_PIN, OUTPUT);
+                    digitalWrite(GPS_POWER_PIN, !GPS_POWER_ON_STATE);
+                #endif
             }
         #endif
         generateBeacons();

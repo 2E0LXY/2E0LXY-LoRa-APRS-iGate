@@ -36,6 +36,10 @@ namespace OTA_Utils {
     void setup(AsyncWebServer *server) {
         if (Config.ota.username != ""  && Config.ota.password != "") {
             ElegantOTA.begin(server, Config.ota.username.c_str(), Config.ota.password.c_str());
+        } else if (Config.webadmin.active) {
+            // Do not leave the upload endpoints open when the rest of the web
+            // interface is protected and no separate OTA account is configured.
+            ElegantOTA.begin(server, Config.webadmin.username.c_str(), Config.webadmin.password.c_str());
         } else {
             ElegantOTA.begin(server);
         }
