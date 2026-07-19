@@ -45,8 +45,8 @@
 #endif
 
 
-String              versionDate             = "2E0LXY-1.1.10";
-String              versionNumber           = "1.1.10";
+String              versionDate             = "2E0LXY-1.2.0";
+String              versionNumber           = "1.2.0";
 Configuration       Config;
 WiFiClient          aprsIsClient;
 WiFiClient          mqttClient;

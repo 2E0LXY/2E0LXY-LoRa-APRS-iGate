@@ -19,6 +19,9 @@
 #include <ESPAsyncWebServer.h>
 #include <ElegantOTA.h>
 #include <AsyncTCP.h>
+#include <HTTPClient.h>
+#include <Update.h>
+#include <WiFiClientSecure.h>
 #include "configuration.h"
 #include "ota_utils.h"
 #include "display.h"
@@ -29,9 +32,26 @@ extern uint32_t             lastScreenOn;
 extern bool                 isUpdatingOTA;
 
 unsigned long ota_progress_millis = 0;
+static String githubUpdateState = "idle";
+static String githubUpdateMessage = "";
 
 
 namespace OTA_Utils {
+
+    static const char* firmwareAssetName() {
+        #if defined(HELTEC_V4)
+        return "2E0LXY-Heltec-V4-firmware.bin";
+        #elif defined(HELTEC_V3_2)
+        return "2E0LXY-Heltec-V3.2-firmware.bin";
+        #elif defined(TTGO_LORA32_V2_1)
+        return "2E0LXY-LilyGO-LoRa32-V2.1-firmware.bin";
+        #else
+        return nullptr;
+        #endif
+    }
+
+    const String& remoteUpdateState() { return githubUpdateState; }
+    const String& remoteUpdateMessage() { return githubUpdateMessage; }
 
     void setup(AsyncWebServer *server) {
         if (Config.ota.username != ""  && Config.ota.password != "") {
@@ -80,6 +100,80 @@ namespace OTA_Utils {
         displayShow("", "", statusMessage, "", rebootMessage, "", "", 4000);
 
         if (!success) isUpdatingOTA = false;
+    }
+
+    bool installLatestFromGitHub() {
+        const char* asset = firmwareAssetName();
+        if (asset == nullptr) {
+            githubUpdateState = "error";
+            githubUpdateMessage = "No GitHub OTA image is defined for this board";
+            return false;
+        }
+
+        githubUpdateState = "downloading";
+        githubUpdateMessage = "Downloading the board-specific release from GitHub";
+        onOTAStart();
+
+        const String url = String("https://github.com/2E0LXY/2E0LXY-LoRa-APRS-iGate/releases/latest/download/") + asset;
+        WiFiClientSecure secureClient;
+        // GitHub rotates its certificate chain. The release URL and board asset
+        // are fixed here, and Update.end(true) validates the ESP image before
+        // changing the boot partition.
+        secureClient.setInsecure();
+        secureClient.setTimeout(20);
+
+        HTTPClient http;
+        http.setConnectTimeout(15000);
+        http.setTimeout(30000);
+        http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
+        if (!http.begin(secureClient, url)) {
+            githubUpdateState = "error";
+            githubUpdateMessage = "Could not start the GitHub download";
+            onOTAEnd(false);
+            return false;
+        }
+
+        const int status = http.GET();
+        if (status != HTTP_CODE_OK) {
+            githubUpdateState = "error";
+            githubUpdateMessage = "GitHub download failed with HTTP " + String(status);
+            http.end();
+            onOTAEnd(false);
+            return false;
+        }
+
+        const int contentLength = http.getSize();
+        if (!Update.begin(contentLength > 0 ? static_cast<size_t>(contentLength) : UPDATE_SIZE_UNKNOWN)) {
+            githubUpdateState = "error";
+            githubUpdateMessage = "Not enough OTA partition space";
+            http.end();
+            onOTAEnd(false);
+            return false;
+        }
+
+        Update.onProgress([](size_t current, size_t total) {
+            OTA_Utils::onOTAProgress(current, total);
+        });
+
+        githubUpdateState = "installing";
+        githubUpdateMessage = "Writing and validating the new firmware";
+        const size_t written = Update.writeStream(http.getStream());
+        const bool complete = Update.end(true);
+        http.end();
+
+        if (!complete || (contentLength > 0 && written != static_cast<size_t>(contentLength))) {
+            githubUpdateState = "error";
+            githubUpdateMessage = "Firmware validation failed: " + String(Update.errorString());
+            onOTAEnd(false);
+            return false;
+        }
+
+        githubUpdateState = "success";
+        githubUpdateMessage = "Firmware installed; rebooting";
+        onOTAEnd(true);
+        delay(1500);
+        ESP.restart();
+        return true;
     }
 
 }

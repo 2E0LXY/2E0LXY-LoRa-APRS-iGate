@@ -412,6 +412,8 @@ el('check').onclick=check;el('install').onclick=install;check();
             item["avgSnr"] = station.avgSnr;
             item["lastFreqError"] = station.lastFreqError;
             item["lastHeard"] = station.lastHeard;
+            item["firstHeardUptime"] = station.firstHeardMillis / 1000;
+            item["lastHeardUptime"] = station.lastHeardMillis / 1000;
         }
         String buffer;
         serializeJson(data, buffer);

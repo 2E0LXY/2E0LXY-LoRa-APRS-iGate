@@ -143,6 +143,7 @@ namespace {
             item.callsign = callsign;
             item.minRssi = item.maxRssi = stationRssi;
             item.minSnr = item.maxSnr = stationSnr;
+            item.firstHeardMillis = millis();
             heardStationDiagnostics.push_back(item);
             found = heardStationDiagnostics.end() - 1;
         }
@@ -157,6 +158,7 @@ namespace {
         found->avgRssi += (stationRssi - found->avgRssi) / found->packets;
         found->avgSnr += (stationSnr - found->avgSnr) / found->packets;
         found->lastHeard = NTP_Utils::getFormatedTime();
+        found->lastHeardMillis = millis();
     }
 }
 

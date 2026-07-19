@@ -47,6 +47,8 @@ struct HeardStationDiagnostic {
     float avgSnr = 0;
     int lastFreqError = 0;
     String lastHeard;
+    uint32_t firstHeardMillis = 0;
+    uint32_t lastHeardMillis = 0;
 };
 
 

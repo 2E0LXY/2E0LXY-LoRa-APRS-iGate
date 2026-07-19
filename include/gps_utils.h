@@ -39,6 +39,7 @@ namespace GPS_Utils {
     uint32_t lastByteAgeMs();
     uint32_t currentBaud();
     bool    isBaudScanning();
+    bool    getCurrentPosition(double& latitude, double& longitude, bool& liveFix);
 
 }
 

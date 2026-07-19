@@ -24,8 +24,8 @@ The Heltec build also supports an external GPS-positioned station.
 - Wi-Fi scanner and multiple saved network profiles.
 - GitHub release checking with confirmed one-click OTA installation.
 - Web authentication, configuration backup/restore and remote controls.
-- **APRS Net iGate Management**: telemetry, remote restart and remote beacon
-  via the APRS Net member dashboard (see below).
+- **APRS Net iGate Management**: telemetry, rolling 24-hour RF-heard history,
+  remote restart, beacon and board-safe GitHub OTA via the member dashboard.
 - Battery, external voltage, weather sensors, telemetry, MQTT, syslog
   and KISS/TNC bridge support.
 
@@ -58,7 +58,7 @@ connected until installation completes.
 | --- | --- |
 | Callsign | Your callsign with an appropriate SSID |
 | APRS-IS server | `www.aprsnet.uk` |
-| MQTT server | `80.64.216.113` (direct IP — Cloudflare does not proxy port 1883) |
+| MQTT server | `www.aprsnet.uk` |
 | APRS-IS port | `14580` |
 | APRS-IS filter | `m/100` |
 | RX/TX frequency | `439912500` Hz |
@@ -82,7 +82,7 @@ Add the following to your `igate_conf.json` under the `mqtt` key:
 ```json
 "mqtt": {
     "active":   true,
-    "server":   "80.64.216.113",
+    "server":   "www.aprsnet.uk",
     "port":     1883,
     "topic":    "aprsnet",
     "username": "YOUR_CALLSIGN",
@@ -110,6 +110,8 @@ Each device card shows in real time:
 | Heap | Free heap memory on ESP32 |
 | RX / TX | Packets received / transmitted since boot |
 | Uptime | Time since last device restart |
+| Hardware / position | Board model, LAN address and GPS or fixed position source |
+| Stations heard (24h) | First/last times, RF packets, RSSI, SNR, frequency error and distance in miles |
 
 ### Remote commands
 
@@ -118,8 +120,11 @@ Each device card shows in real time:
 | ⟳ Restart | Reboots the ESP32 immediately |
 | 📡 Force Beacon | Sends an APRS position beacon right now |
 | ↻ Status | Requests an immediate telemetry update |
+| ⇧ Update from GitHub | Downloads, validates and installs the latest firmware asset for that exact board |
 
-Telemetry is also published automatically every **60 seconds**.
+Telemetry is also published automatically every **60 seconds**. The server
+retains a bounded rolling 24-hour history across iGate restarts and provides a
+CSV download for each device.
 
 ### Security
 

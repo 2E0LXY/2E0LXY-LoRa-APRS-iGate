@@ -8,7 +8,9 @@
 #include <WiFiClient.h>
 #include <PubSubClient.h>
 #include "configuration.h"
+#include "gps_utils.h"
 #include "lora_utils.h"
+#include "ota_utils.h"
 #include "station_utils.h"
 #include "mqtt_utils.h"
 
@@ -27,6 +29,18 @@ static const uint32_t MQTT_RECONNECT_INTERVAL_MS = 30000;
 
 
 namespace MQTT_Utils {
+
+    static const char* boardName() {
+        #if defined(HELTEC_V4)
+        return "Heltec WiFi LoRa 32 V4";
+        #elif defined(HELTEC_V3_2)
+        return "Heltec WiFi LoRa 32 V3.2";
+        #elif defined(TTGO_LORA32_V2_1)
+        return "LilyGO TTGO LoRa32 V2.1";
+        #else
+        return "ESP32 LoRa APRS";
+        #endif
+    }
 
     // Return a clean topic base without accidental empty path components.
     static String mqttBaseTopic() {
@@ -94,15 +108,48 @@ namespace MQTT_Utils {
         doc["rx"]         = radio.rxValid;
         doc["tx"]         = radio.txSuccess;
         doc["aprs_server"] = Config.aprs_is.server;
+        doc["board"]       = boardName();
+        doc["local_ip"]    = WiFi.localIP().toString();
+        doc["mqtt_state"]  = pubSub.state();
+        doc["update_state"] = OTA_Utils::remoteUpdateState();
+        doc["update_message"] = OTA_Utils::remoteUpdateMessage();
+
+        double latitude = 0.0;
+        double longitude = 0.0;
+        bool liveFix = false;
+        if (GPS_Utils::getCurrentPosition(latitude, longitude, liveFix)) {
+            doc["latitude"] = latitude;
+            doc["longitude"] = longitude;
+            doc["position_source"] = liveFix ? "GPS" : "fixed";
+        }
+
+        JsonArray heard = doc["heard"].to<JsonArray>();
+        for (const HeardStationDiagnostic& station : LoRa_Utils::heardStations()) {
+            JsonObject item = heard.add<JsonObject>();
+            item["callsign"] = station.callsign;
+            item["packets"] = station.packets;
+            item["last_rssi"] = station.lastRssi;
+            item["avg_rssi"] = station.avgRssi;
+            item["min_rssi"] = station.minRssi;
+            item["max_rssi"] = station.maxRssi;
+            item["last_snr"] = station.lastSnr;
+            item["avg_snr"] = station.avgSnr;
+            item["min_snr"] = station.minSnr;
+            item["max_snr"] = station.maxSnr;
+            item["freq_error"] = station.lastFreqError;
+            item["first_uptime"] = station.firstHeardMillis / 1000;
+            item["last_uptime"] = station.lastHeardMillis / 1000;
+        }
         // Battery voltage if available (external ADC)
         // doc["batt"] = analogRead(PIN_ADC) * 3.3 / 4095.0 * DIVIDER;
 
-        char payload[256];
-        serializeJson(doc, payload, sizeof(payload));
+        String payload;
+        payload.reserve(8192);
+        serializeJson(doc, payload);
 
         const String topic = mqttBaseTopic() + "/" + mqttOwnerTopic()
                              + "/" + Config.callsign + "/telemetry";
-        if (pubSub.publish(topic.c_str(), payload)) {
+        if (pubSub.publish(topic.c_str(), payload.c_str())) {
             Serial.println("MQTT telemetry published");
         } else {
             Serial.print("MQTT telemetry publish failed, state="); Serial.println(pubSub.state());
@@ -128,6 +175,11 @@ namespace MQTT_Utils {
                 lastBeaconTx = 0;
             } else if (cmd == "telemetry") {
                 publishTelemetry();
+            } else if (cmd == "update") {
+                Serial.println("MQTT: GitHub firmware update requested");
+                publishTelemetry();
+                delay(100);
+                if (!OTA_Utils::installLatestFromGitHub()) publishTelemetry();
             } else if (cmd == "aprs") {
                 const String packetPayload = doc["payload"] | "";
                 if (packetPayload.length() > 0) {
@@ -206,7 +258,9 @@ namespace MQTT_Utils {
         if (!Config.mqtt.active) return;
         pubSub.setClient(mqttClient);
         pubSub.setCallback(receivedFromMqtt);
-        pubSub.setBufferSize(512);
+        // A full 32-station diagnostic report is normally 6–9 KB. Leave
+        // headroom for the MQTT topic and framing without dropping telemetry.
+        pubSub.setBufferSize(12288);
     }
 
 }

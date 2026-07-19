@@ -29,6 +29,9 @@ namespace OTA_Utils {
     void onOTAStart();
     void onOTAProgress(size_t current, size_t final);
     void onOTAEnd(bool success);
+    bool installLatestFromGitHub();
+    const String& remoteUpdateState();
+    const String& remoteUpdateMessage();
 
 }
 

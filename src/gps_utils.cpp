@@ -292,4 +292,23 @@ namespace GPS_Utils {
         #endif
     }
 
+    bool getCurrentPosition(double& latitude, double& longitude, bool& liveFix) {
+        liveFix = false;
+        #ifdef HAS_GPS
+        if (Config.beacon.gpsActive && gps.location.isValid() &&
+            gps.location.age() < 10000 && gps.location.lat() != 0.0 &&
+            gps.location.lng() != 0.0) {
+            latitude = gps.location.lat();
+            longitude = gps.location.lng();
+            liveFix = true;
+            return true;
+        }
+        #endif
+        latitude = Config.beacon.latitude;
+        longitude = Config.beacon.longitude;
+        return latitude >= -90.0 && latitude <= 90.0 &&
+               longitude >= -180.0 && longitude <= 180.0 &&
+               !(latitude == 0.0 && longitude == 0.0);
+    }
+
 }
