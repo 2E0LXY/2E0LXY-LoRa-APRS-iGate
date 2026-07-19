@@ -110,6 +110,21 @@ namespace MQTT_Utils {
         doc["aprs_server"] = Config.aprs_is.server;
         doc["board"]       = boardName();
         doc["local_ip"]    = WiFi.localIP().toString();
+        doc["region_profile"] = Config.regional.profile;
+        doc["profile_confirmed"] = Config.regional.profileConfirmed;
+        doc["country_code"] = Config.regional.countryCode;
+        doc["hardware_band"] = Config.regional.hardwareBand;
+        doc["timezone"] = Config.ntp.timezone;
+        doc["distance_unit"] = Config.regional.distanceUnit;
+        doc["altitude_unit"] = Config.regional.altitudeUnit;
+        doc["speed_unit"] = Config.regional.speedUnit;
+        doc["temperature_unit"] = Config.regional.temperatureUnit;
+        doc["rx_frequency"] = Config.loramodule.rxFreq;
+        doc["tx_frequency"] = Config.loramodule.txFreq;
+        doc["spreading_factor"] = Config.loramodule.rxSpreadingFactor;
+        doc["bandwidth"] = Config.loramodule.rxSignalBandwidth;
+        doc["coding_rate"] = Config.loramodule.rxCodingRate4;
+        doc["tx_power"] = Config.loramodule.power;
         doc["mqtt_state"]  = pubSub.state();
         doc["update_state"] = OTA_Utils::remoteUpdateState();
         doc["update_message"] = OTA_Utils::remoteUpdateMessage();
@@ -214,6 +229,7 @@ namespace MQTT_Utils {
             : pubSub.connect(Config.callsign.c_str());
 
         if (connected) {
+            connectAttempted = false;
             Serial.println(" OK");
             // Subscribe to command topic: aprsnet/{owner}/{device}/cmd
             const String cmdTopic = mqttBaseTopic() + "/" + mqttOwnerTopic()
@@ -245,7 +261,10 @@ namespace MQTT_Utils {
     // ── Called every main loop iteration ─────────────────────────────────
     void loop() {
         if (!Config.mqtt.active) return;
-        if (!pubSub.connected()) return;
+        if (!pubSub.connected()) {
+            connect();
+            return;
+        }
         pubSub.loop();
         // Periodic telemetry
         if (millis() - lastTelemetryMs > TELEMETRY_INTERVAL_MS) {
@@ -258,9 +277,13 @@ namespace MQTT_Utils {
         if (!Config.mqtt.active) return;
         pubSub.setClient(mqttClient);
         pubSub.setCallback(receivedFromMqtt);
-        // A full 32-station diagnostic report is normally 6–9 KB. Leave
-        // headroom for the MQTT topic and framing without dropping telemetry.
-        pubSub.setBufferSize(12288);
+        // A full station report can exceed 12 KB once regional and position
+        // metadata are present. Reserve enough room for payload, topic and
+        // MQTT framing, and report allocation failure rather than silently
+        // dropping every telemetry publish.
+        if (!pubSub.setBufferSize(24576)) {
+            Serial.println("MQTT: could not allocate 24 KB telemetry buffer");
+        }
     }
 
 }

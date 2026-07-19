@@ -157,6 +157,20 @@ class NTP {
 public:
     String  server;
     float   gmtCorrection;
+    String  timezone;
+    String  timezoneRule;
+};
+
+class REGIONAL {
+public:
+    String  profile;
+    String  countryCode;
+    String  hardwareBand;
+    String  distanceUnit;
+    String  altitudeUnit;
+    String  speedUnit;
+    String  temperatureUnit;
+    bool    profileConfirmed;
 };
 
 class REMOTE_MANAGEMENT {
@@ -200,12 +214,14 @@ public:
     OTA                     ota;
     WEBADMIN                webadmin;
     NTP                     ntp;
+    REGIONAL                regional;
     REMOTE_MANAGEMENT       remoteManagement;
     MQTT                    mqtt;
 
     void setup();
     void setDefaultValues();
     bool writeFile();
+    bool validateRadioSettings(String& error) const;
 
 private:
     bool readFile();

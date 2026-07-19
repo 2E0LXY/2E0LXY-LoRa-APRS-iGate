@@ -16,8 +16,6 @@
  * along with LoRa APRS iGate. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <NTPClient.h>
-#include <WiFiUdp.h>
 #include "configuration.h"
 #include "network_manager.h"
 #include "ntp_utils.h"
@@ -26,18 +24,39 @@
 
 extern      Configuration  Config;
 extern      NetworkManager *networkManager;
-WiFiUDP     ntpUDP;
-NTPClient*  timeClient = nullptr;
 
 
 namespace NTP_Utils {
 
+    static unsigned long lastSetupAttemptMs = 0;
+
+    static String fixedOffsetRule(float hours) {
+        const bool localAheadOfUtc = hours >= 0;
+        int totalMinutes = static_cast<int>(roundf(fabsf(hours) * 60.0f));
+        const int wholeHours = totalMinutes / 60;
+        const int minutes = totalMinutes % 60;
+        // POSIX TZ offsets have the opposite sign: UTC-1 means UTC+01:00.
+        String rule = "UTC";
+        rule += localAheadOfUtc ? "-" : "+";
+        rule += String(wholeHours);
+        if (minutes > 0) {
+            rule += ":";
+            if (minutes < 10) rule += "0";
+            rule += String(minutes);
+        }
+        return rule;
+    }
+
     bool setup() {
         if (networkManager->isConnected() && Config.digi.ecoMode == 0 && Config.callsign != "NOCALL-10") {
-            int gmt = Config.ntp.gmtCorrection * 3600;
-            Serial.println("[NTP] Setting up, TZ offset: " + String(gmt) + " Server: " +  Config.ntp.server);
-            timeClient = new NTPClient(ntpUDP, Config.ntp.server.c_str(), gmt, 15 * 60 * 1000); // Update interval 15 min
-            timeClient->begin();
+            lastSetupAttemptMs = millis();
+            String timezoneRule = Config.ntp.timezoneRule;
+            if (timezoneRule.isEmpty()) timezoneRule = fixedOffsetRule(Config.ntp.gmtCorrection);
+            setenv("TZ", timezoneRule.c_str(), 1);
+            tzset();
+            configTime(0, 0, Config.ntp.server.c_str());
+            Serial.println("[NTP] Setting up, timezone: " + Config.ntp.timezone +
+                           " (" + timezoneRule + ") Server: " + Config.ntp.server);
             return true;
         }
         return false;
@@ -47,35 +66,37 @@ namespace NTP_Utils {
         if (!networkManager->isConnected() || Config.digi.ecoMode != 0 || Config.callsign == "NOCALL-10") {
             return;
         }
-        if (timeClient == nullptr) {
-            if (!setup()) {
-                return;
-            }
+        // ESP-IDF SNTP refreshes automatically after configTime(). Retry only
+        // every 30 seconds while unsynchronised so the main loop and DNS are
+        // not flooded if the configured NTP server is unreachable.
+        if (!isTimeSet() && (lastSetupAttemptMs == 0 || millis() - lastSetupAttemptMs >= 30000UL)) {
+            setup();
         }
-
-        timeClient->update();
     }
 
     String getFormatedTime() {
-        if (networkManager->isConnected() && Config.digi.ecoMode == 0 && timeClient != nullptr) {
-            return timeClient->getFormattedTime();
-        }
-        return "DigiEcoMode Active";
+        if (!isTimeSet()) return Config.digi.ecoMode == 0 ? "Waiting for NTP" : "DigiEcoMode Active";
+        const time_t now = time(nullptr);
+        struct tm timeInfo;
+        localtime_r(&now, &timeInfo);
+        char buffer[12];
+        strftime(buffer, sizeof(buffer), "%H:%M:%S", &timeInfo);
+        return String(buffer);
     }
 
     bool isTimeSet() {
-        return timeClient != nullptr && timeClient->isTimeSet();
+        return time(nullptr) > 1577836800; // 2020-01-01 UTC
     }
 
     String getDateTime() {
         if (!isTimeSet()) return "Waiting for NTP sync";
 
-        time_t epoch = static_cast<time_t>(timeClient->getEpochTime());
+        const time_t epoch = time(nullptr);
         struct tm timeInfo;
-        gmtime_r(&epoch, &timeInfo);
+        localtime_r(&epoch, &timeInfo);
 
-        char buffer[24];
-        strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", &timeInfo);
+        char buffer[40];
+        strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S %Z", &timeInfo);
         return String(buffer);
     }
 

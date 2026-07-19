@@ -181,6 +181,17 @@ bool Configuration::writeFile() {
 
         data["ntp"]["server"]                       = ntp.server;
         data["ntp"]["gmtCorrection"]                = ntp.gmtCorrection;
+        data["ntp"]["timezone"]                     = ntp.timezone;
+        data["ntp"]["timezoneRule"]                 = ntp.timezoneRule;
+
+        data["regional"]["profile"]                 = regional.profile;
+        data["regional"]["countryCode"]             = regional.countryCode;
+        data["regional"]["hardwareBand"]            = regional.hardwareBand;
+        data["regional"]["distanceUnit"]            = regional.distanceUnit;
+        data["regional"]["altitudeUnit"]            = regional.altitudeUnit;
+        data["regional"]["speedUnit"]               = regional.speedUnit;
+        data["regional"]["temperatureUnit"]         = regional.temperatureUnit;
+        data["regional"]["profileConfirmed"]        = regional.profileConfirmed;
 
         data["other"]["rebootMode"]                 = rebootMode;
         data["other"]["rebootModeTime"]             = rebootModeTime;
@@ -453,6 +464,52 @@ bool Configuration::readFile() {
             data["ntp"]["gmtCorrection"].isNull()) needsRewrite = true;
         ntp.server                      = data["ntp"]["server"] | "pool.ntp.org";
         ntp.gmtCorrection               = data["ntp"]["gmtCorrection"] | 0.0;
+        if (data["ntp"]["timezone"].isNull() || data["ntp"]["timezoneRule"].isNull()) {
+            needsRewrite = true;
+            if (loramodule.rxFreq == 439912500) {
+                ntp.timezone = "Europe/London";
+                ntp.timezoneRule = "GMT0BST,M3.5.0/1,M10.5.0/2";
+            } else {
+                ntp.timezone = "Fixed offset";
+                ntp.timezoneRule = "";
+            }
+        } else {
+            ntp.timezone                     = data["ntp"]["timezone"] | "Europe/London";
+            ntp.timezoneRule                 = data["ntp"]["timezoneRule"] | "GMT0BST,M3.5.0/1,M10.5.0/2";
+        }
+
+        if (data["regional"]["profile"].isNull() ||
+            data["regional"]["countryCode"].isNull() ||
+            data["regional"]["hardwareBand"].isNull() ||
+            data["regional"]["distanceUnit"].isNull() ||
+            data["regional"]["altitudeUnit"].isNull() ||
+            data["regional"]["speedUnit"].isNull() ||
+            data["regional"]["temperatureUnit"].isNull() ||
+            data["regional"]["profileConfirmed"].isNull()) {
+            needsRewrite = true;
+            // Existing 2E0LXY installations were UK builds. Migrate them
+            // without changing any operational radio or network setting.
+            regional.profile = loramodule.rxFreq == 439912500 ? "uk" : "custom";
+            regional.countryCode = loramodule.rxFreq == 439912500 ? "GB" : "";
+            regional.hardwareBand = loramodule.rxFreq < 600000000 ? "433" : "868-915";
+            regional.distanceUnit = "mi";
+            regional.altitudeUnit = "m";
+            regional.speedUnit = "mph";
+            regional.temperatureUnit = "c";
+            regional.profileConfirmed = callsign != "NOCALL-10";
+            if (data["aprs_is"]["server"].isNull()) {
+                aprs_is.server = loramodule.rxFreq == 439912500 ? "www.aprsnet.uk" : "rotate.aprs2.net";
+            }
+        } else {
+            regional.profile             = data["regional"]["profile"] | "custom";
+            regional.countryCode         = data["regional"]["countryCode"] | "";
+            regional.hardwareBand        = data["regional"]["hardwareBand"] | "433";
+            regional.distanceUnit        = data["regional"]["distanceUnit"] | "mi";
+            regional.altitudeUnit        = data["regional"]["altitudeUnit"] | "m";
+            regional.speedUnit           = data["regional"]["speedUnit"] | "mph";
+            regional.temperatureUnit     = data["regional"]["temperatureUnit"] | "c";
+            regional.profileConfirmed    = data["regional"]["profileConfirmed"] | false;
+        }
 
         if (data["other"]["rebootMode"].isNull() ||
             data["other"]["rebootModeTime"].isNull()) needsRewrite = true;
@@ -506,7 +563,7 @@ void Configuration::setDefaultValues() {
 
     aprs_is.active                  = false;
     aprs_is.passcode                = "XYZVW";
-    aprs_is.server                  = "www.aprsnet.uk";
+    aprs_is.server                  = "rotate.aprs2.net";
     aprs_is.port                    = 14580;
     aprs_is.filter                  = "m/100";
     aprs_is.messagesToRF            = false;
@@ -518,7 +575,7 @@ void Configuration::setDefaultValues() {
     beacon.interval                 = 15;
     beacon.overlay                  = "L";
     beacon.symbol                   = "a";
-    beacon.path                     = "WIDE1-1";
+    beacon.path                     = "";
 
     beacon.sendViaAPRSIS            = true;
     beacon.sendViaRF                = false;
@@ -538,7 +595,7 @@ void Configuration::setDefaultValues() {
     digi.ecoMode                    = 0;
     digi.backupDigiMode             = false;
 
-    loramodule.rxActive             = true;
+    loramodule.rxActive             = false;
     loramodule.rxFreq               = 439912500;
     loramodule.rxSpreadingFactor    = 12;
     loramodule.rxCodingRate4        = 5;
@@ -548,7 +605,7 @@ void Configuration::setDefaultValues() {
     loramodule.txSpreadingFactor    = 12;
     loramodule.txCodingRate4        = 5;
     loramodule.txSignalBandwidth    = 125000;
-    loramodule.power                = 20;
+    loramodule.power                = 10;
     loramodule.scanActive           = false;
     loramodule.scanFreq             = 0;
     loramodule.scanSpreadingFactor  = 12;
@@ -609,6 +666,17 @@ void Configuration::setDefaultValues() {
 
     ntp.server                      = "pool.ntp.org";
     ntp.gmtCorrection               = 0.0;
+    ntp.timezone                    = "UTC";
+    ntp.timezoneRule                = "UTC0";
+
+    regional.profile                = "unconfigured";
+    regional.countryCode            = "";
+    regional.hardwareBand           = "433";
+    regional.distanceUnit           = "km";
+    regional.altitudeUnit           = "m";
+    regional.speedUnit              = "kmh";
+    regional.temperatureUnit        = "c";
+    regional.profileConfirmed       = false;
 
     rebootMode                      = false;
     rebootModeTime                  = 0;
@@ -616,6 +684,73 @@ void Configuration::setDefaultValues() {
     rememberStationTime             = 30;
 
     Serial.println("New Data Created... All is Written!");
+}
+
+bool Configuration::validateRadioSettings(String& error) const {
+    const long minChipFrequency =
+        #if defined(HAS_SX1278)
+            137000000L;
+        #elif defined(HAS_SX1276)
+            137000000L;
+        #else
+            150000000L;
+        #endif
+    const long maxChipFrequency =
+        #if defined(HAS_SX1278)
+            525000000L;
+        #else
+            960000000L;
+        #endif
+
+    auto frequencyAllowed = [&](long frequency) {
+        if (frequency < minChipFrequency || frequency > maxChipFrequency) return false;
+        if (regional.hardwareBand == "433") return frequency >= 410000000L && frequency <= 525000000L;
+        if (regional.hardwareBand == "868-915") return frequency >= 850000000L && frequency <= 930000000L;
+        return regional.hardwareBand == "wide";
+    };
+
+    if (!frequencyAllowed(loramodule.rxFreq) || !frequencyAllowed(loramodule.txFreq)) {
+        error = "RX or TX frequency is outside the selected hardware band";
+        return false;
+    }
+    const int minPower =
+        #if defined(HAS_SX1278) || defined(HAS_SX1276)
+            -3;
+        #else
+            -9;
+        #endif
+    const int maxPower =
+        #if defined(HAS_SX1278) || defined(HAS_SX1276)
+            20;
+        #else
+            22;
+        #endif
+    if (loramodule.power < minPower || loramodule.power > maxPower) {
+        error = "Transmit power is outside this radio's supported range";
+        return false;
+    }
+    const int minSpreadingFactor =
+        #if defined(HAS_SX1278) || defined(HAS_SX1276)
+            6;
+        #else
+            5;
+        #endif
+    if (loramodule.rxSpreadingFactor < minSpreadingFactor || loramodule.rxSpreadingFactor > 12 ||
+        loramodule.txSpreadingFactor < minSpreadingFactor || loramodule.txSpreadingFactor > 12) {
+        error = "LoRa spreading factor is outside this radio's supported range";
+        return false;
+    }
+    if (loramodule.rxSignalBandwidth < 7800 || loramodule.rxSignalBandwidth > 500000 ||
+        loramodule.txSignalBandwidth < 7800 || loramodule.txSignalBandwidth > 500000) {
+        error = "LoRa bandwidth is outside the radio's supported range";
+        return false;
+    }
+    if (loramodule.rxCodingRate4 < 5 || loramodule.rxCodingRate4 > 8 ||
+        loramodule.txCodingRate4 < 5 || loramodule.txCodingRate4 > 8) {
+        error = "LoRa coding rate must be between 4/5 and 4/8";
+        return false;
+    }
+    return true;
 }
 
 void Configuration::setup() {
