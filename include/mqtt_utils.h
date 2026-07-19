@@ -3,14 +3,13 @@
 
 #include <Arduino.h>
 
-extern int mqttPacketsRx;
-extern int mqttPacketsTx;
-
 namespace MQTT_Utils {
     void sendToMqtt(const String& packet);
     void publishBeaconToMqtt(const String& beaconPacket);
     void publishTelemetry();
     void connect();
+    bool isConnected();
+    int state();
     void loop();
     void setup();
 }

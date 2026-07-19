@@ -45,8 +45,8 @@
 #endif
 
 
-String              versionDate             = "2E0LXY-1.1.9";
-String              versionNumber           = "1.1.9";
+String              versionDate             = "2E0LXY-1.1.10";
+String              versionNumber           = "1.1.10";
 Configuration       Config;
 WiFiClient          aprsIsClient;
 WiFiClient          mqttClient;
@@ -151,7 +151,7 @@ void loop() {
             WIFI_Utils::checkWiFi();
             if (networkManager->isConnected()) {
                 if (Config.aprs_is.active && !aprsIsClient.connected()) APRS_IS_Utils::connect();
-                if (Config.mqtt.active && !mqttClient.connected()) MQTT_Utils::connect();
+                if (Config.mqtt.active && !MQTT_Utils::isConnected()) MQTT_Utils::connect();
             }
         #endif
 

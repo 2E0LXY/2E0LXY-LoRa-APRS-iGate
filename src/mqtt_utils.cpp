@@ -8,39 +8,62 @@
 #include <WiFiClient.h>
 #include <PubSubClient.h>
 #include "configuration.h"
+#include "lora_utils.h"
 #include "station_utils.h"
 #include "mqtt_utils.h"
 
 extern Configuration  Config;
 extern WiFiClient     mqttClient;
 extern String         versionDate;
-
-// Counters exposed from the main loop
-int                   mqttPacketsRx = 0;
-int                   mqttPacketsTx = 0;
+extern uint32_t       lastBeaconTx;
 
 PubSubClient          pubSub;
 
 static uint32_t       lastTelemetryMs = 0;
 static const uint32_t TELEMETRY_INTERVAL_MS = 60000; // every 60 s
+static uint32_t       lastConnectAttemptMs = 0;
+static bool           connectAttempted = false;
+static const uint32_t MQTT_RECONNECT_INTERVAL_MS = 30000;
 
 
 namespace MQTT_Utils {
 
-    // Returns the configured topic base, defaulting to "aprsnet" if empty.
-    // An empty Config.mqtt.topic causes paths like "/CALLSIGN" (leading slash).
+    // Return a clean topic base without accidental empty path components.
     static String mqttBaseTopic() {
-        return Config.mqtt.topic.isEmpty() ? "aprsnet" : Config.mqtt.topic;
+        String base = Config.mqtt.topic;
+        base.trim();
+        while (base.startsWith("/")) base.remove(0, 1);
+        while (base.endsWith("/") && !base.isEmpty()) base.remove(base.length() - 1);
+        return base.isEmpty() ? "aprsnet" : base;
+    }
+
+    // MQTT authentication accepts callsigns case-insensitively, but topic
+    // matching is case-sensitive. Always use the canonical uppercase owner.
+    static String mqttOwnerTopic() {
+        String owner = Config.mqtt.username;
+        owner.trim();
+        owner.toUpperCase();
+        return owner;
     }
 
     // ── Forward received LoRa packet to MQTT ──────────────────────────────
     void sendToMqtt(const String& packet) {
         if (!pubSub.connected()) return;
+        if (packet.length() <= 3) return;
         const String cleanPacket = packet.substring(3);   // strip LoRa header bytes
-        const String sender      = cleanPacket.substring(0, cleanPacket.indexOf(">"));
-        const String topic       = mqttBaseTopic() + "/" + Config.mqtt.username + "/" + sender;
+        const int separator = cleanPacket.indexOf(">");
+        if (separator <= 0) {
+            Serial.println("MQTT: ignored packet without a valid source callsign");
+            return;
+        }
+        String sender = cleanPacket.substring(0, separator);
+        sender.trim();
+        sender.toUpperCase();
+        const String topic = mqttBaseTopic() + "/" + mqttOwnerTopic() + "/" + sender;
         if (pubSub.publish(topic.c_str(), cleanPacket.c_str())) {
             Serial.print("MQTT TX: "); Serial.println(topic);
+        } else {
+            Serial.print("MQTT packet publish failed, state="); Serial.println(pubSub.state());
         }
     }
 
@@ -49,10 +72,12 @@ namespace MQTT_Utils {
     // string — unlike received LoRa packets it has no 3-byte header to strip.
     void publishBeaconToMqtt(const String& beaconPacket) {
         if (!pubSub.connected()) return;
-        const String topic = mqttBaseTopic() + "/" + Config.mqtt.username
+        const String topic = mqttBaseTopic() + "/" + mqttOwnerTopic()
                              + "/" + Config.callsign + "/beacon";
         if (pubSub.publish(topic.c_str(), beaconPacket.c_str())) {
             Serial.print("MQTT beacon TX: "); Serial.println(topic);
+        } else {
+            Serial.print("MQTT beacon publish failed, state="); Serial.println(pubSub.state());
         }
     }
 
@@ -60,24 +85,28 @@ namespace MQTT_Utils {
     void publishTelemetry() {
         if (!pubSub.connected()) return;
 
-        StaticJsonDocument<256> doc;
+        JsonDocument doc;
         doc["fw"]         = versionDate;
         doc["uptime"]     = millis() / 1000;
         doc["heap"]       = ESP.getFreeHeap();
         doc["wifi_rssi"]  = WiFi.RSSI();
-        doc["rx"]         = mqttPacketsRx;
-        doc["tx"]         = mqttPacketsTx;
+        const RadioDiagnostics& radio = LoRa_Utils::diagnostics();
+        doc["rx"]         = radio.rxValid;
+        doc["tx"]         = radio.txSuccess;
         doc["aprs_server"] = Config.aprs_is.server;
         // Battery voltage if available (external ADC)
         // doc["batt"] = analogRead(PIN_ADC) * 3.3 / 4095.0 * DIVIDER;
 
         char payload[256];
-        serializeJson(doc, payload);
+        serializeJson(doc, payload, sizeof(payload));
 
-        const String topic = mqttBaseTopic() + "/" + Config.mqtt.username
+        const String topic = mqttBaseTopic() + "/" + mqttOwnerTopic()
                              + "/" + Config.callsign + "/telemetry";
-        pubSub.publish(topic.c_str(), payload);
-        Serial.println("MQTT telemetry published");
+        if (pubSub.publish(topic.c_str(), payload)) {
+            Serial.println("MQTT telemetry published");
+        } else {
+            Serial.print("MQTT telemetry publish failed, state="); Serial.println(pubSub.state());
+        }
     }
 
     // ── Handle command received from aprsnet server ─────────────────────
@@ -86,7 +115,7 @@ namespace MQTT_Utils {
         Serial.print("MQTT CMD: "); Serial.println(raw);
 
         // Check if it's a JSON command from the aprsnet control panel
-        StaticJsonDocument<256> doc;
+        JsonDocument doc;
         if (deserializeJson(doc, raw) == DeserializationError::Ok) {
             const String cmd = doc["cmd"] | "";
             if (cmd == "restart") {
@@ -96,16 +125,16 @@ namespace MQTT_Utils {
             } else if (cmd == "beacon") {
                 Serial.println("MQTT: force beacon command received");
                 // Set lastBeaconTx = 0 to force immediate beacon on next loop
-                extern uint32_t lastBeaconTx;
                 lastBeaconTx = 0;
             } else if (cmd == "telemetry") {
                 publishTelemetry();
-            } else if (cmd != "") {
-                // Unknown command — pass to APRS output buffer as raw packet
+            } else if (cmd == "aprs") {
                 const String packetPayload = doc["payload"] | "";
                 if (packetPayload.length() > 0) {
                     STATION_Utils::addToOutputPacketBuffer(packetPayload);
                 }
+            } else if (cmd != "") {
+                Serial.print("MQTT: ignored unknown command: "); Serial.println(cmd);
             }
         } else {
             // Legacy: raw APRS packet (backward compatible)
@@ -117,6 +146,11 @@ namespace MQTT_Utils {
     void connect() {
         if (pubSub.connected()) return;
         if (Config.mqtt.server.isEmpty() || Config.mqtt.port <= 0) return;
+
+        const uint32_t now = millis();
+        if (connectAttempted && now - lastConnectAttemptMs < MQTT_RECONNECT_INTERVAL_MS) return;
+        connectAttempted = true;
+        lastConnectAttemptMs = now;
 
         pubSub.setServer(Config.mqtt.server.c_str(), Config.mqtt.port);
         Serial.print("MQTT connecting to " + Config.mqtt.server + "...");
@@ -130,15 +164,30 @@ namespace MQTT_Utils {
         if (connected) {
             Serial.println(" OK");
             // Subscribe to command topic: aprsnet/{owner}/{device}/cmd
-            const String cmdTopic = mqttBaseTopic() + "/" + Config.mqtt.username
+            const String cmdTopic = mqttBaseTopic() + "/" + mqttOwnerTopic()
                                     + "/" + Config.callsign + "/cmd";
-            pubSub.subscribe(cmdTopic.c_str());
-            Serial.print("MQTT subscribed: "); Serial.println(cmdTopic);
+            if (pubSub.subscribe(cmdTopic.c_str())) {
+                Serial.print("MQTT subscribed: "); Serial.println(cmdTopic);
+            } else {
+                Serial.print("MQTT subscription failed, state="); Serial.println(pubSub.state());
+            }
             // Immediately publish telemetry so server knows we're online
             publishTelemetry();
+            lastTelemetryMs = now;
         } else {
-            Serial.println(" FAILED (retry soon)");
+            Serial.print(" FAILED, state=");
+            Serial.print(pubSub.state());
+            Serial.println(" (retry in 30 seconds)");
+            mqttClient.stop();
         }
+    }
+
+    bool isConnected() {
+        return pubSub.connected();
+    }
+
+    int state() {
+        return pubSub.state();
     }
 
     // ── Called every main loop iteration ─────────────────────────────────

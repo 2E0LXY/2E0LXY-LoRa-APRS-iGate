@@ -1,6 +1,6 @@
 # 2E0LXY LoRa APRS iGate and Digipeater Manual
 
-Version 1.1.9 - Heltec V3.2, Heltec V4 and LilyGO LoRa32 V2.1 - July 2026
+Version 1.1.10 - Heltec V3.2, Heltec V4 and LilyGO LoRa32 V2.1 - July 2026
 
 ## 1. Purpose
 
