@@ -14,6 +14,8 @@ jobs:
               target:
                 - name: ttgo-lora32-v21
                   chip: esp32
+                - name: heltec_wifi_lora_32_V3_2
+                  chip: esp32s3
         steps:
             - uses: actions/checkout@v3
 

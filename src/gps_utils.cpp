@@ -36,6 +36,7 @@ extern HardwareSerial   gpsSerial;
 extern TinyGPSPlus      gps;
 extern bool             stationCallsignIsValid;
 String                  distance, iGateBeaconPacket, iGateLoRaBeaconPacket;
+#ifdef HAS_GPS
 static bool             gpsDataReceived = false;
 static uint32_t         gpsLastByteMillis = 0;
 static uint32_t         gpsCurrentBaud = GPS_BAUD;
@@ -45,6 +46,9 @@ static bool             gpsBaudLocked = false;
 static const uint32_t   gpsBaudCandidates[] = {9600, 38400, 115200, 4800};
 static const uint8_t    gpsBaudCandidateCount =
     sizeof(gpsBaudCandidates) / sizeof(gpsBaudCandidates[0]);
+#else
+static uint32_t         gpsCurrentBaud = GPS_BAUD;
+#endif
 
 
 namespace GPS_Utils {
@@ -212,6 +216,7 @@ namespace GPS_Utils {
     }
 
     void getData() {
+        #ifdef HAS_GPS
         const uint32_t passedBefore = gps.passedChecksum();
         while (gpsSerial.available() > 0) {
             gpsDataReceived = true;
@@ -235,14 +240,23 @@ namespace GPS_Utils {
             Serial.printf("[GPS] No valid NMEA yet; trying %lu baud\n",
                 static_cast<unsigned long>(gpsCurrentBaud));
         }
+        #endif
     }
 
     bool hasReceivedData() {
+        #ifdef HAS_GPS
         return gpsDataReceived;
+        #else
+        return false;
+        #endif
     }
 
     uint32_t lastByteAgeMs() {
+        #ifdef HAS_GPS
         return gpsDataReceived ? millis() - gpsLastByteMillis : UINT32_MAX;
+        #else
+        return UINT32_MAX;
+        #endif
     }
 
     uint32_t currentBaud() {
@@ -250,7 +264,11 @@ namespace GPS_Utils {
     }
 
     bool isBaudScanning() {
+        #ifdef HAS_GPS
         return !gpsBaudLocked;
+        #else
+        return false;
+        #endif
     }
 
 }

@@ -27,10 +27,10 @@
         "active": false,
         "messagesToRF": false,
         "objectsToRF": false,
-        "server": "rotate.aprs2.net",
+        "server": "www.aprsnet.uk",
         "passcode": "XYZVW",        
         "port": 14580,
-        "filter": "m/10"        
+        "filter": "m/100"
     },
     "personalNote": "",
     "blacklist": "",
@@ -41,12 +41,12 @@
     },
     "lora": {
         "rxActive": true,
-        "rxFreq": 433775000,
+        "rxFreq": 439912500,
         "rxSpreadingFactor": 12,
         "rxCodingRate4": 5,
         "rxSignalBandwidth": 125000,
         "txActive": false,
-        "txFreq": 433775000,
+        "txFreq": 439912500,
         "txSpreadingFactor": 12,
         "txCodingRate4": 5,
         "txSignalBandwidth": 125000,

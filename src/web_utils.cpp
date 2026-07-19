@@ -98,17 +98,17 @@ body{margin:0;background:#061321;color:#e8f3ff;font-family:system-ui,sans-serif}
 .warning{margin-top:22px;padding:14px;border-left:3px solid #ffd166;background:#17293a;color:#cfdfed}@media(max-width:650px){.version-grid{grid-template-columns:1fr}}
 </style></head><body><main class="update-shell">
 <nav class="update-nav"><a href="/">Configuration</a><a href="/received-packets">Packets</a><a href="/packet-map">RF Map</a><a href="/diagnostics">Diagnostics</a><a class="active" href="/firmware-update">Update</a></nav>
-<section class="update-card"><h1>Firmware update</h1><p class="muted">Checks the official 2E0LXY GitHub release and installs the Heltec V3.2 OTA image.</p>
+<section class="update-card"><h1>Firmware update</h1><p class="muted">Detected board: <strong>OTA_BOARD_NAME</strong>. The updater installs only its matching 2E0LXY OTA image.</p>
 <div class="version-grid"><div class="version-box"><small>Installed</small><strong id="current">CURRENT_VERSION</strong></div><div class="version-box"><small>Latest release</small><strong id="latest">Checking…</strong></div></div>
 <div id="status" class="status">Contacting GitHub…</div><div class="actions"><button id="install" disabled>Install latest firmware</button><button id="check">Check again</button><a href="/update">Manual firmware upload</a></div>
 <div class="warning"><strong>Before updating:</strong> keep the iGate powered and connected to Wi-Fi. Configuration is retained. The device verifies the firmware write before rebooting.</div>
 </section></main><script>
-const current='v1.1.5',api='https://api.github.com/repos/2E0LXY/2E0LXY-LoRa-APRS-iGate/releases/latest';let asset=null;
+const current='v1.1.6',assetName='OTA_ASSET_NAME',boardName='OTA_BOARD_NAME',api='https://api.github.com/repos/2E0LXY/2E0LXY-LoRa-APRS-iGate/releases/latest';let asset=null;
 const el=id=>document.getElementById(id),parts=v=>v.replace(/^[^0-9]*/,'').split('.').map(n=>parseInt(n)||0);
 function newer(a,b){const x=parts(a),y=parts(b);for(let i=0;i<3;i++){if((x[i]||0)!==(y[i]||0))return(x[i]||0)>(y[i]||0)}return false}
 async function check(){asset=null;el('install').disabled=true;el('latest').textContent='Checking…';el('status').className='status';el('status').textContent='Contacting GitHub…';
 try{const r=await fetch(api,{cache:'no-store',headers:{Accept:'application/vnd.github+json'}});if(!r.ok)throw Error('GitHub returned '+r.status);const d=await r.json();el('latest').textContent=d.tag_name;
-asset=(d.assets||[]).find(a=>/Heltec-V3\.2-firmware\.bin$/i.test(a.name));if(!asset)throw Error('Compatible Heltec V3.2 OTA image is not attached to this release');
+asset=(d.assets||[]).find(a=>a.name.toLowerCase()===assetName.toLowerCase());if(!asset)throw Error('Compatible '+boardName+' OTA image is not attached to this release');
 if(newer(d.tag_name,current)){el('status').className='status available';el('status').textContent='Update available: '+d.name;el('install').disabled=false}else{el('status').className='status good';el('status').textContent='This iGate is already running the latest release.'}}
 catch(e){el('status').className='status error';el('status').textContent='Update check failed: '+e.message}}
 async function install(){if(!asset||!confirm('Install '+el('latest').textContent+' now? Do not disconnect power.'))return;el('install').disabled=true;
@@ -125,6 +125,16 @@ el('check').onclick=check;el('install').onclick=install;check();
             return request->requestAuthentication();
         String page = FPSTR(firmwareUpdatePage);
         page.replace("CURRENT_VERSION", versionDate);
+        #if defined(HELTEC_V3_2)
+            page.replace("OTA_BOARD_NAME", "Heltec WiFi LoRa 32 V3.2");
+            page.replace("OTA_ASSET_NAME", "2E0LXY-Heltec-V3.2-firmware.bin");
+        #elif defined(TTGO_LORA32_V2_1)
+            page.replace("OTA_BOARD_NAME", "LilyGO TTGO LoRa32 V2.1");
+            page.replace("OTA_ASSET_NAME", "2E0LXY-LilyGO-LoRa32-V2.1-firmware.bin");
+        #else
+            page.replace("OTA_BOARD_NAME", "Unsupported board");
+            page.replace("OTA_ASSET_NAME", "__no_compatible_ota_asset__");
+        #endif
         request->send(200, "text/html", page);
     }
 

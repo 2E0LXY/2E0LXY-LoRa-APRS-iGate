@@ -1,13 +1,14 @@
 # 2E0LXY LoRa APRS iGate and Digipeater Manual
 
-Version 1.1.5 - Heltec WiFi LoRa 32 V3.2 - July 2026
+Version 1.1.6 - Heltec V3.2 and LilyGO LoRa32 V2.1 - July 2026
 
 ## 1. Purpose
 
-This firmware turns a Heltec WiFi LoRa 32 V3.2 into a UK LoRa APRS
-receive iGate, APRS-IS connected station and configurable WIDE1/WIDE2
-digipeater. It includes a modern browser interface, RF packet map,
-diagnostics, Wi-Fi scanning, GPS location and GitHub OTA updates.
+This firmware turns a Heltec WiFi LoRa 32 V3.2 or LilyGO TTGO LoRa32
+V2.1 into a UK LoRa APRS receive iGate, APRS-IS connected station and
+configurable WIDE1/WIDE2 digipeater. It includes a modern browser
+interface, RF packet map, diagnostics, Wi-Fi scanning and board-safe
+GitHub OTA updates. The Heltec build also supports external GPS.
 
 ## 2. Safety and licence
 
@@ -22,8 +23,13 @@ diagnostics, Wi-Fi scanning, GPS location and GitHub OTA updates.
 
 ### Supported release target
 
-The supplied binaries target the Heltec WiFi LoRa 32 V3.2 with ESP32-S3,
-SX1262 LoRa radio, 8 MB flash and onboard OLED.
+| Board | Processor | LoRa radio | Flash |
+| --- | --- | --- | --- |
+| Heltec WiFi LoRa 32 V3.2 | ESP32-S3 | SX1262 | 8 MB |
+| LilyGO TTGO LoRa32 V2.1 | ESP32 | SX1278 | 4 MB |
+
+Each board has a separate OTA and full-flash image. Never cross-flash
+the images.
 
 ### GPS wiring
 
@@ -43,9 +49,10 @@ the module voltage before applying power.
 ### Browser installer
 
 1. Open the 2E0LXY GitHub Pages installer in desktop Chrome or Edge.
-2. Connect the Heltec directly by USB.
+2. Connect one supported board directly by USB.
 3. Select **Connect and install**.
-4. Choose the Heltec serial device.
+4. Choose its serial device. The installer detects ESP32-S3 or ESP32 and
+   selects the matching image.
 5. Confirm installation and wait for verification and reboot.
 
 The full installer can erase stored settings. Existing stations should
@@ -53,14 +60,18 @@ download a configuration backup first.
 
 ### Manual USB flash
 
-Download `2E0LXY-Heltec-V3.2-full-flash.bin` from GitHub Releases and
-write it to address `0x0` as an ESP32-S3 image.
+Download the matching full-flash image from GitHub Releases and write it
+to address `0x0`:
+
+- `2E0LXY-Heltec-V3.2-full-flash.bin` for Heltec ESP32-S3.
+- `2E0LXY-LilyGO-LoRa32-V2.1-full-flash.bin` for LilyGO ESP32.
 
 ### OTA update
 
 Open **Update** in the device interface. The page compares the installed
-version with the latest 2E0LXY GitHub release. Installation is enabled
-only when a newer compatible Heltec V3.2 OTA image is available.
+version with the latest 2E0LXY GitHub release. The compiled board identity
+selects the exact Heltec or LilyGO OTA filename. Installation is enabled
+only when that compatible asset is attached.
 
 ## 5. First connection
 
@@ -186,7 +197,7 @@ the offset.
 The GitHub updater performs these checks:
 
 1. Read the latest release from the standalone 2E0LXY repository.
-2. Confirm that a Heltec V3.2 OTA image is attached.
+2. Confirm that the matching Heltec or LilyGO OTA image is attached.
 3. Compare semantic versions.
 4. Require operator confirmation.
 5. Download and write the firmware.

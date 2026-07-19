@@ -37,19 +37,19 @@
   <main>
     <section class="intro">
       <h1>Install 2E0LXY LoRa APRS iGate</h1>
-      <p>This installer uses ESP Web Tools and Web Serial to flash the latest 2E0LXY firmware onto a Heltec WiFi LoRa 32 V3.2. No drivers or extra software are normally required.</p>
+      <p>This installer uses ESP Web Tools and Web Serial to detect and flash either a Heltec WiFi LoRa 32 V3.2 or LilyGO TTGO LoRa32 V2.1. No drivers or extra software are normally required.</p>
     </section>
     <section class="installer" aria-label="Firmware installer">
       <div class="summary">
-        <div class="summary-item"><span class="summary-icon">▣</span><span><small>Board</small><strong>Heltec WiFi LoRa 32 V3.2</strong></span></div>
-        <div class="summary-item"><span class="summary-icon">◇</span><span><small>Release</small><strong>v1.1.5</strong></span></div>
+        <div class="summary-item"><span class="summary-icon">▣</span><span><small>Boards</small><strong>Heltec V3.2<br>LilyGO LoRa32 V2.1</strong></span></div>
+        <div class="summary-item"><span class="summary-icon">◇</span><span><small>Release</small><strong>v1.1.6</strong></span></div>
         <div class="summary-item"><span class="summary-icon">⌁</span><span><small>UK profile</small><strong>439.9125 MHz · SF12<br>125 kHz · CR 4/5</strong></span></div>
         <div class="summary-item"><span class="summary-icon">⌯</span><span><small>Connection</small><strong>USB Web Serial</strong></span></div>
       </div>
       <div class="install-body">
         <div class="steps">
-          <article class="step"><h3>Connect USB</h3><p>Connect the Heltec V3.2 directly to this computer.</p></article>
-          <article class="step"><h3>Select device</h3><p>Choose the Heltec serial device when prompted.</p></article>
+          <article class="step"><h3>Connect USB</h3><p>Connect one supported Heltec or LilyGO board directly to this computer.</p></article>
+          <article class="step"><h3>Select device</h3><p>Choose its serial device; the installer detects the ESP32 family automatically.</p></article>
           <article class="step"><h3>Install firmware</h3><p>Allow the write and verification to finish completely.</p></article>
         </div>
         <div class="connect">

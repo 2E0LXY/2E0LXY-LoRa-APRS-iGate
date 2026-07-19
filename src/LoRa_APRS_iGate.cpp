@@ -45,7 +45,7 @@
 #endif
 
 
-String              versionDate             = "2E0LXY-1.1.5";
+String              versionDate             = "2E0LXY-1.1.6";
 String              versionNumber           = "3.2.4";
 Configuration       Config;
 WiFiClient          aprsIsClient;

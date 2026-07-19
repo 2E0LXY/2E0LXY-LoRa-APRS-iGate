@@ -1,7 +1,8 @@
 # 2E0LXY LoRa APRS iGate and Digipeater
 
-Firmware for a Heltec WiFi LoRa 32 V3.2 operating as a UK LoRa APRS
-iGate, WIDE1/WIDE2 digipeater and GPS-positioned station.
+Firmware for Heltec WiFi LoRa 32 V3.2 and LilyGO TTGO LoRa32 V2.1
+boards operating as UK LoRa APRS iGates and WIDE1/WIDE2 digipeaters.
+The Heltec build also supports an external GPS-positioned station.
 
 [Web installer](https://2e0lxy.github.io/2E0LXY-LoRa-APRS-iGate/) |
 [Firmware downloads](https://github.com/2E0LXY/2E0LXY-LoRa-APRS-iGate/releases/latest) |
@@ -12,7 +13,8 @@ iGate, WIDE1/WIDE2 digipeater and GPS-positioned station.
 
 - UK 439.9125 MHz LoRa APRS profile: SF12, 125 kHz, CR 4/5.
 - Simultaneous receive iGate and configurable WIDE1/WIDE2 digipeater.
-- GPS location on GPIO 47 RX and GPIO 48 TX at 9600 baud.
+- Board-specific OTA updates that refuse to install the other board's image.
+- Heltec GPS location on GPIO 47 RX and GPIO 48 TX with automatic baud detection.
 - Live GPS dashboard with hardware detection, fix quality, NMEA statistics,
   coordinates, altitude, speed, course and UTC time.
 - APRS-IS gating through `www.aprsnet.uk:14580`.
@@ -29,12 +31,19 @@ iGate, WIDE1/WIDE2 digipeater and GPS-positioned station.
 
 The easiest installation method is the
 [2E0LXY browser installer](https://2e0lxy.github.io/2E0LXY-LoRa-APRS-iGate/).
-Use Chrome or Edge on a computer connected to the Heltec by USB.
+Use Chrome or Edge on a computer connected to one supported board by USB.
+The installer detects ESP32-S3 for Heltec or ESP32 for LilyGO and selects
+the matching full-flash image.
 
 For manual installation, download one of the release assets:
 
 - `2E0LXY-Heltec-V3.2-full-flash.bin` - first USB installation at `0x0`.
 - `2E0LXY-Heltec-V3.2-firmware.bin` - OTA update that retains configuration.
+- `2E0LXY-LilyGO-LoRa32-V2.1-full-flash.bin` - LilyGO first USB installation.
+- `2E0LXY-LilyGO-LoRa32-V2.1-firmware.bin` - LilyGO OTA update.
+
+Never cross-flash the Heltec and LilyGO OTA files. The in-device updater
+selects the exact compatible asset automatically and stops if it is absent.
 
 Back up the configuration before changing firmware and keep USB power
 connected until installation completes.
@@ -51,7 +60,7 @@ connected until installation completes.
 | Spreading factor | `SF12` |
 | Bandwidth | `125 kHz` |
 | Coding rate | `4/5` |
-| GPS | GPIO 47 RX, GPIO 48 TX, 9600 baud |
+| GPS (Heltec V3.2) | GPIO 47 RX, GPIO 48 TX, automatic baud detection |
 
 ## Interface
 
