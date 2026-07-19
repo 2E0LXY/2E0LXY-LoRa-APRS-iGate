@@ -73,6 +73,46 @@ namespace {
     uint32_t lastScanStart = 0;
     uint32_t scanStartedAt = 0;
 
+    #ifdef HELTEC_V4
+    enum class HeltecV4Fem { GC1109, KCT8103L };
+    HeltecV4Fem heltecV4Fem = HeltecV4Fem::GC1109;
+
+    void setupHeltecV4Fem() {
+        pinMode(LORA_PA_POWER, OUTPUT);
+        digitalWrite(LORA_PA_POWER, HIGH);
+        delay(5);
+        pinMode(LORA_FEM_CSD, INPUT);
+        delay(1);
+        heltecV4Fem = digitalRead(LORA_FEM_CSD) == HIGH
+            ? HeltecV4Fem::KCT8103L : HeltecV4Fem::GC1109;
+        pinMode(LORA_FEM_CSD, OUTPUT);
+        digitalWrite(LORA_FEM_CSD, HIGH);
+        if (heltecV4Fem == HeltecV4Fem::GC1109) {
+            pinMode(LORA_GC1109_CPS, OUTPUT);
+            digitalWrite(LORA_GC1109_CPS, LOW);
+            Utils::println("Heltec V4 RF front end: GC1109");
+        } else {
+            pinMode(LORA_KCT8103L_CTX, OUTPUT);
+            digitalWrite(LORA_KCT8103L_CTX, LOW);
+            Utils::println("Heltec V4 RF front end: KCT8103L");
+        }
+    }
+
+    void setHeltecV4TxMode() {
+        digitalWrite(LORA_PA_POWER, HIGH);
+        digitalWrite(LORA_FEM_CSD, HIGH);
+        digitalWrite(heltecV4Fem == HeltecV4Fem::GC1109
+            ? LORA_GC1109_CPS : LORA_KCT8103L_CTX, HIGH);
+    }
+
+    void setHeltecV4RxMode() {
+        digitalWrite(LORA_PA_POWER, HIGH);
+        digitalWrite(LORA_FEM_CSD, HIGH);
+        digitalWrite(heltecV4Fem == HeltecV4Fem::GC1109
+            ? LORA_GC1109_CPS : LORA_KCT8103L_CTX, LOW);
+    }
+    #endif
+
     uint32_t packetHash(const String& packet) {
         uint32_t hash = 2166136261UL;
         for (size_t i = 0; i < packet.length(); i++) {
@@ -132,6 +172,9 @@ namespace LoRa_Utils {
     }
 
     void setup() {
+        #ifdef HELTEC_V4
+            setupHeltecV4Fem();
+        #endif
         #if defined (LIGHTGATEWAY_1_0) || defined(LIGHTGATEWAY_PLUS_1_0)
             pinMode(RADIO_VCC_PIN,OUTPUT);
             digitalWrite(RADIO_VCC_PIN,HIGH);
@@ -187,7 +230,12 @@ namespace LoRa_Utils {
             state = radio.setOutputPower(Config.loramodule.power); // max value 20dB for 400M30S as it has Low Noise Amp
             radio.setCurrentLimit(100); // to be validated (80 , 100)?
         #endif
-        #if (defined(HAS_SX1268) || defined(HAS_SX1262)) && !defined(HAS_1W_LORA)
+        #ifdef HELTEC_V4
+            // V4 includes an external PA. Treat the configured value as approximate
+            // antenna output and compensate for the front-end gain.
+            state = radio.setOutputPower(constrain(Config.loramodule.power - 11, -9, 17));
+            radio.setCurrentLimit(140);
+        #elif (defined(HAS_SX1268) || defined(HAS_SX1262)) && !defined(HAS_1W_LORA)
             state = radio.setOutputPower(Config.loramodule.power + 2); // values available: 10, 17, 22 --> if 20 in tracker_conf.json it will be updated to 22.
             radio.setCurrentLimit(140);
         #endif
@@ -243,7 +291,13 @@ namespace LoRa_Utils {
         #ifdef INTERNAL_LED_PIN
             if (Config.digi.ecoMode != 1) digitalWrite(INTERNAL_LED_PIN, HIGH);     // disabled in Ultra Eco Mode
         #endif
+        #ifdef HELTEC_V4
+            setHeltecV4TxMode();
+        #endif
         int state = radio.transmit("\x3c\xff\x01" + newPacket);
+        #ifdef HELTEC_V4
+            setHeltecV4RxMode();
+        #endif
         transmitFlag = true;
         if (state == RADIOLIB_ERR_NONE) {
             radioDiagnostics.txSuccess++;

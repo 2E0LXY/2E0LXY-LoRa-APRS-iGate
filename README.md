@@ -1,6 +1,6 @@
 # 2E0LXY LoRa APRS iGate and Digipeater
 
-Firmware for Heltec WiFi LoRa 32 V3.2 and LilyGO TTGO LoRa32 V2.1
+Firmware for Heltec WiFi LoRa 32 V3.2, Heltec WiFi LoRa 32 V4 and LilyGO TTGO LoRa32 V2.1
 boards operating as UK LoRa APRS iGates and WIDE1/WIDE2 digipeaters.
 The Heltec build also supports an external GPS-positioned station.
 
@@ -32,8 +32,8 @@ The Heltec build also supports an external GPS-positioned station.
 The easiest installation method is the
 [2E0LXY browser installer](https://2e0lxy.github.io/2E0LXY-LoRa-APRS-iGate/).
 Use Chrome or Edge on a computer connected to one supported board by USB.
-The installer detects ESP32-S3 for Heltec or ESP32 for LilyGO and selects
-the matching full-flash image.
+Select the exact Heltec generation because V3.2 and V4 are both ESP32-S3
+boards but have different RF and flash hardware. LilyGO is detected as ESP32.
 
 For manual installation, download one of the release assets:
 
@@ -41,8 +41,10 @@ For manual installation, download one of the release assets:
 - `2E0LXY-Heltec-V3.2-firmware.bin` - OTA update that retains configuration.
 - `2E0LXY-LilyGO-LoRa32-V2.1-full-flash.bin` - LilyGO first USB installation.
 - `2E0LXY-LilyGO-LoRa32-V2.1-firmware.bin` - LilyGO OTA update.
+- `2E0LXY-Heltec-V4-full-flash.bin` - Heltec V4 first USB installation.
+- `2E0LXY-Heltec-V4-firmware.bin` - Heltec V4 OTA update.
 
-Never cross-flash the Heltec and LilyGO OTA files. The in-device updater
+Never cross-flash the V3.2, V4 and LilyGO OTA files. The in-device updater
 selects the exact compatible asset automatically and stops if it is absent.
 
 Back up the configuration before changing firmware and keep USB power
@@ -61,6 +63,8 @@ connected until installation completes.
 | Bandwidth | `125 kHz` |
 | Coding rate | `4/5` |
 | GPS (Heltec V3.2) | GPIO 47 RX, GPIO 48 TX, automatic baud detection |
+| GPS (Heltec V4 connector) | GPIO 38 RX, GPIO 39 TX, automatic baud detection |
+| Heltec V4 RF front end | Automatic GC1109 (V4.2) / KCT8103L (V4.3) detection |
 
 ## Interface
 

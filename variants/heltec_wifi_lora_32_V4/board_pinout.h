@@ -59,20 +59,17 @@
     #define VEXT_CTRL_PIN           36
     #define VEXT_CTRL_ON_STATE      LOW
 
-    //  GPS   ??
-    #define VGNS_CTRL               34  // cambiar nombre para prender GPS ?
-    //  wakeup  40
-    //  TX      39
-    //  RX      38
-    //  RST     42
-    //  PPS     41
-    //#define GPS_L76K
+    //  On-board GPS connector (GPS TX -> MCU GPIO38, GPS RX -> MCU GPIO39)
+    #define HAS_GPS
+    #define GPS_BAUDRATE            9600
+    #define GPS_TX                  38
+    #define GPS_RX                  39
 
-    // // active low, powers the oled display and the lora antenna boost
-
-    //#define LORA_PA_POWER 7 // power en
-    //#define LORA_PA_EN 2
-    //#define LORA_PA_TX_EN 46 // enable tx
+    //  V4.2 GC1109 / V4.3 KCT8103L RF front end
+    #define LORA_PA_POWER           7
+    #define LORA_FEM_CSD            2
+    #define LORA_GC1109_CPS         46
+    #define LORA_KCT8103L_CTX       5
 
 
 #endif

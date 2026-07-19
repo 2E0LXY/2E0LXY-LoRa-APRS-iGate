@@ -103,7 +103,7 @@ body{margin:0;background:#061321;color:#e8f3ff;font-family:system-ui,sans-serif}
 <div id="status" class="status">Contacting GitHub…</div><div class="actions"><button id="install" disabled>Install latest firmware</button><button id="check">Check again</button><a href="/update">Manual firmware upload</a></div>
 <div class="warning"><strong>Before updating:</strong> keep the iGate powered and connected to Wi-Fi. Configuration is retained. The device verifies the firmware write before rebooting.</div>
 </section></main><script>
-const current='v1.1.6',assetName='OTA_ASSET_NAME',boardName='OTA_BOARD_NAME',api='https://api.github.com/repos/2E0LXY/2E0LXY-LoRa-APRS-iGate/releases/latest';let asset=null;
+const current='v1.1.7',assetName='OTA_ASSET_NAME',boardName='OTA_BOARD_NAME',api='https://api.github.com/repos/2E0LXY/2E0LXY-LoRa-APRS-iGate/releases/latest';let asset=null;
 const el=id=>document.getElementById(id),parts=v=>v.replace(/^[^0-9]*/,'').split('.').map(n=>parseInt(n)||0);
 function newer(a,b){const x=parts(a),y=parts(b);for(let i=0;i<3;i++){if((x[i]||0)!==(y[i]||0))return(x[i]||0)>(y[i]||0)}return false}
 async function check(){asset=null;el('install').disabled=true;el('latest').textContent='Checking…';el('status').className='status';el('status').textContent='Contacting GitHub…';
@@ -125,7 +125,10 @@ el('check').onclick=check;el('install').onclick=install;check();
             return request->requestAuthentication();
         String page = FPSTR(firmwareUpdatePage);
         page.replace("CURRENT_VERSION", versionDate);
-        #if defined(HELTEC_V3_2)
+        #if defined(HELTEC_V4)
+            page.replace("OTA_BOARD_NAME", "Heltec WiFi LoRa 32 V4");
+            page.replace("OTA_ASSET_NAME", "2E0LXY-Heltec-V4-firmware.bin");
+        #elif defined(HELTEC_V3_2)
             page.replace("OTA_BOARD_NAME", "Heltec WiFi LoRa 32 V3.2");
             page.replace("OTA_ASSET_NAME", "2E0LXY-Heltec-V3.2-firmware.bin");
         #elif defined(TTGO_LORA32_V2_1)

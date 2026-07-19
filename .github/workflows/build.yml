@@ -1,4 +1,4 @@
-name: Build dual-board release
+name: Build supported-board release
 
 on:
   release:
@@ -19,6 +19,11 @@ jobs:
             flash_size: 8MB
             boot_offset: "0x0000"
             asset: 2E0LXY-Heltec-V3.2
+          - environment: heltec_wifi_lora_32_V4
+            chip: esp32s3
+            flash_size: 16MB
+            boot_offset: "0x0000"
+            asset: 2E0LXY-Heltec-V4
           - environment: ttgo-lora32-v21
             chip: esp32
             flash_size: 4MB
