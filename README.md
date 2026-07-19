@@ -24,8 +24,10 @@ The Heltec build also supports an external GPS-positioned station.
 - Wi-Fi scanner and multiple saved network profiles.
 - GitHub release checking with confirmed one-click OTA installation.
 - Web authentication, configuration backup/restore and remote controls.
+- **APRS Net iGate Management**: telemetry, remote restart and remote beacon
+  via the APRS Net member dashboard (see below).
 - Battery, external voltage, weather sensors, telemetry, MQTT, syslog
-  and KISS/TNC bridge support inherited and maintained in this edition.
+  and KISS/TNC bridge support.
 
 ## Install
 
@@ -66,9 +68,63 @@ connected until installation completes.
 | GPS (Heltec V4 connector) | GPIO 38 RX, GPIO 39 TX, automatic baud detection |
 | Heltec V4 RF front end | Compatible control for GC1109 (V4.2) and KCT8103L (V4.3) |
 
-For Heltec V4, enabling live GPS also enables the GNSS rail on GPIO34
-and releases standby on GPIO40. The firmware applies conservative output-power
-compensation compatible with both documented RF front ends.
+## APRS Net Remote Management
+
+Devices running this firmware can connect to the APRS Net member dashboard
+for live telemetry and remote control — no need to have physical access to
+the device once it is deployed.
+
+### Device setup (igate_conf.json)
+
+Add the following to your `igate_conf.json` under the `mqtt` key:
+
+```json
+"mqtt": {
+    "active":   true,
+    "server":   "www.aprsnet.uk",
+    "port":     1883,
+    "topic":    "aprsnet",
+    "username": "YOUR_CALLSIGN",
+    "password": "YOUR_APRSNET_MEMBER_PASSWORD"
+}
+```
+
+Replace `YOUR_CALLSIGN` and `YOUR_APRSNET_MEMBER_PASSWORD` with your
+[aprsnet.uk](https://www.aprsnet.uk/) member account credentials.
+You must have a registered account — sign up for free at the website.
+
+### Dashboard
+
+Once connected, open **Member Settings** on [aprsnet.uk](https://www.aprsnet.uk/)
+(click your callsign → Settings). Scroll down to **📡 My LoRa APRS iGate Devices**.
+
+Each device card shows in real time:
+
+| Field | Description |
+| --- | --- |
+| Online / Offline | MQTT connection state |
+| Last seen | Time since last telemetry packet |
+| FW | Firmware version string |
+| WiFi | WiFi signal strength (dBm) |
+| Heap | Free heap memory on ESP32 |
+| RX / TX | Packets received / transmitted since boot |
+| Uptime | Time since last device restart |
+
+### Remote commands
+
+| Button | Action |
+| --- | --- |
+| ⟳ Restart | Reboots the ESP32 immediately |
+| 📡 Force Beacon | Sends an APRS position beacon right now |
+| ↻ Status | Requests an immediate telemetry update |
+
+Telemetry is also published automatically every **60 seconds**.
+
+### Security
+
+Each device authenticates with your member callsign and password.
+All telemetry and commands are **private to your account** — no other
+member can see or control your devices.
 
 ## Interface
 
@@ -108,18 +164,16 @@ features.
 | Manual and scheduled station beacon | Supported from the web interface |
 | OTA firmware update | Supported, including GitHub release checking |
 | Serial KISS/TNC and APRS bridge | Supported |
+| APRS Net remote management (MQTT) | Supported — see above |
 | Bluetooth KISS/TNC | Not present on this Heltec build; serial/network TNC is used |
-| APRS434 experimental address-compressed 18-byte frames | Not advertised as supported; protocol compatibility must be validated before gating |
+| APRS434 experimental address-compressed 18-byte frames | Not advertised as supported |
 | Tracker SmartBeaconing and turn detection | Tracker-only; not applicable to a fixed iGate |
 | Tracker button/GPS power controls | Tracker-only; not applicable to a fixed iGate |
 
-The receiver never guesses or “repairs” damaged frames. Unsupported or
-CRC-failed packets are counted for diagnostics but are not gated or repeated.
-
 ## Related 2E0LXY software
 
-- [APRS Net UK](https://www.aprsnet.uk/) - live map, messaging, LoRa view,
-  weather, alerts and APRS utilities.
+- [APRS Net UK](https://www.aprsnet.uk/) — live map, messaging, LoRa view,
+  weather, iGate management, alerts and APRS utilities.
 - [APRS Android](https://github.com/2E0LXY/APRS-Android)
 - [APRS Client for Windows and Linux](https://github.com/2E0LXY/APRS-Client)
 - [Advanced APRS Go Server](https://github.com/2E0LXY/Advanced-APRS-Go-server)
