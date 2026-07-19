@@ -58,6 +58,7 @@ connected until installation completes.
 | --- | --- |
 | Callsign | Your callsign with an appropriate SSID |
 | APRS-IS server | `www.aprsnet.uk` |
+| MQTT server | `80.64.216.113` (direct IP — Cloudflare does not proxy port 1883) |
 | APRS-IS port | `14580` |
 | APRS-IS filter | `m/100` |
 | RX/TX frequency | `439912500` Hz |
@@ -81,7 +82,7 @@ Add the following to your `igate_conf.json` under the `mqtt` key:
 ```json
 "mqtt": {
     "active":   true,
-    "server":   "www.aprsnet.uk",
+    "server":   "80.64.216.113",
     "port":     1883,
     "topic":    "aprsnet",
     "username": "YOUR_CALLSIGN",
