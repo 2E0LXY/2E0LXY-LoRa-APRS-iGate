@@ -8,6 +8,7 @@ extern int mqttPacketsTx;
 
 namespace MQTT_Utils {
     void sendToMqtt(const String& packet);
+    void publishBeaconToMqtt(const String& beaconPacket);
     void publishTelemetry();
     void connect();
     void loop();
