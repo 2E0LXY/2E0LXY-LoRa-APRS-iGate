@@ -51,6 +51,7 @@ extern String               versionNumber;
 uint32_t    lastRxTime      = millis();
 bool        passcodeValid   = false;
 uint32_t    lastServerCheck = 0;
+static uint32_t lastConnectAttempt = 0;
 
 
 #ifdef HAS_A7670
@@ -65,33 +66,30 @@ namespace APRS_IS_Utils {
     }
 
     void connect() {
+        const uint32_t now = millis();
+        if (aprsIsClient.connected() ||
+            (lastConnectAttempt != 0 && now - lastConnectAttempt < 5000UL)) {
+            return;
+        }
+        lastConnectAttempt = now;
+        passcodeValid = false;
         Serial.print("Connecting to APRS-IS ...     ");
-        uint8_t count = 0;
-        while (!aprsIsClient.connect(Config.aprs_is.server.c_str(), Config.aprs_is.port) && count < 20) {
-            Serial.println("Didn't connect with server...");
-            delay(1000);
+        if (!aprsIsClient.connect(Config.aprs_is.server.c_str(), Config.aprs_is.port)) {
             aprsIsClient.stop();
-            aprsIsClient.flush();
-            Serial.println("Run client.stop");
-            Serial.println("Trying to connect with Server: " + String(Config.aprs_is.server) + " AprsServerPort: " + String(Config.aprs_is.port));
-            count++;
-            Serial.println("Try: " + String(count));
+            Serial.println("Connection failed; retrying in 5 seconds");
+            return;
         }
-        if (count == 20) {
-            Serial.println("Tried: " + String(count) + " FAILED!");
-        } else {
-            Serial.println("Connected!\n(Server: " + String(Config.aprs_is.server) + " / Port: " + String(Config.aprs_is.port) + ")");
-            // String filter = "t/m/" + Config.callsign + "/" + (String)Config.aprs_is.reportingDistance;
-            String aprsAuth = "user ";
-            aprsAuth += Config.callsign;
-            aprsAuth += " pass ";
-            aprsAuth += Config.aprs_is.passcode;
-            aprsAuth += " vers 2E0LXY-iGate ";
-            aprsAuth += versionNumber;
-            aprsAuth += " filter ";
-            aprsAuth += Config.aprs_is.filter;
-            upload(aprsAuth);
-        }
+        Serial.println("Connected!\n(Server: " + String(Config.aprs_is.server) +
+                       " / Port: " + String(Config.aprs_is.port) + ")");
+        String aprsAuth = "user ";
+        aprsAuth += Config.callsign;
+        aprsAuth += " pass ";
+        aprsAuth += Config.aprs_is.passcode;
+        aprsAuth += " vers 2E0LXY-iGate ";
+        aprsAuth += versionNumber;
+        aprsAuth += " filter ";
+        aprsAuth += Config.aprs_is.filter;
+        upload(aprsAuth);
     }
 
     void checkStatus() {
@@ -413,8 +411,14 @@ namespace APRS_IS_Utils {
     void firstConnection() {
         if (Config.aprs_is.active && networkManager->isConnected() && !aprsIsClient.connected()) {
             connect();
-            while (!passcodeValid) {
+            const uint32_t handshakeStarted = millis();
+            while (aprsIsClient.connected() && !passcodeValid &&
+                   millis() - handshakeStarted < 10000UL) {
                 listenAPRSIS();
+                delay(10);
+            }
+            if (aprsIsClient.connected() && !passcodeValid) {
+                Serial.println("APRS-IS login response pending; continuing startup");
             }
         }
     }

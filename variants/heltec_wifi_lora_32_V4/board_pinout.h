@@ -69,11 +69,14 @@
     #define GPS_STANDBY_PIN         40
     #define GPS_STANDBY_ON_STATE    HIGH
 
-    //  V4.2 GC1109 / V4.3 KCT8103L RF front end
-    #define LORA_PA_POWER           7
+    //  V4.2 GC1109 / V4.3 KCT8103L RF front end.
+    //  Both use GPIO7 for Vfem and GPIO2 for CSD. V4.2 routes CPS to
+    //  GPIO46 and CTX to SX1262 DIO2; V4.3 routes CPS to DIO2 and CTX
+    //  to GPIO5. Drive both revision-specific MCU lines in parallel.
+    #define LORA_VFEM_CTRL          7
     #define LORA_FEM_CSD            2
-    #define LORA_GC1109_CPS         46
-    #define LORA_KCT8103L_CTX       5
+    #define LORA_V42_FEM_CPS        46
+    #define LORA_V43_FEM_CTX        5
 
 
 #endif

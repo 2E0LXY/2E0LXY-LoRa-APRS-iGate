@@ -61,7 +61,7 @@ namespace GPS_Utils {
         String beaconPacket = APRSPacketLib::generateBasePacket(Config.callsign, "APLRG1", Config.beacon.path);
         String encodedGPS   = APRSPacketLib::encodeGPSIntoBase91(Config.beacon.latitude, Config.beacon.longitude, 0, 0, Config.beacon.symbol, false, 0, true, Config.beacon.ambiguityLevel);
 
-        if (Config.callsign.indexOf("NOCALL-10") != 0) {
+        if (!Config.callsign.startsWith("NOCALL")) {
             if (!stationCallsignIsValid) {
                 displayShow("***** ERROR ******", "CALLSIGN = NOT VALID!", "", "Only Rx Mode Active", 3000);
                 Config.loramodule.txActive  = false;

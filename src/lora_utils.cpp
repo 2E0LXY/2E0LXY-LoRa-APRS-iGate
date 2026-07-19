@@ -75,33 +75,30 @@ namespace {
 
     #ifdef HELTEC_V4
     void setupHeltecV4Fem() {
-        pinMode(LORA_PA_POWER, OUTPUT);
-        digitalWrite(LORA_PA_POWER, HIGH);
+        pinMode(LORA_VFEM_CTRL, OUTPUT);
+        digitalWrite(LORA_VFEM_CTRL, HIGH);
         delay(5);
         pinMode(LORA_FEM_CSD, OUTPUT);
         digitalWrite(LORA_FEM_CSD, HIGH);
-        // V4.2 (GC1109) and V4.3 (KCT8103L) do not provide a reliable
-        // software-readable board-revision strap. Driving both revision-specific
-        // mode pins keeps the fitted FEM in LNA mode without guessing the board.
-        pinMode(LORA_GC1109_CPS, OUTPUT);
-        pinMode(LORA_KCT8103L_CTX, OUTPUT);
-        digitalWrite(LORA_GC1109_CPS, LOW);
-        digitalWrite(LORA_KCT8103L_CTX, LOW);
+        pinMode(LORA_V42_FEM_CPS, OUTPUT);
+        pinMode(LORA_V43_FEM_CTX, OUTPUT);
+        digitalWrite(LORA_V42_FEM_CPS, LOW);
+        digitalWrite(LORA_V43_FEM_CTX, LOW);
         Utils::println("Heltec V4 RF front end initialized (V4.2/V4.3)");
     }
 
     void setHeltecV4TxMode() {
-        digitalWrite(LORA_PA_POWER, HIGH);
+        digitalWrite(LORA_VFEM_CTRL, HIGH);
         digitalWrite(LORA_FEM_CSD, HIGH);
-        digitalWrite(LORA_GC1109_CPS, HIGH);
-        digitalWrite(LORA_KCT8103L_CTX, HIGH);
+        digitalWrite(LORA_V42_FEM_CPS, HIGH);
+        digitalWrite(LORA_V43_FEM_CTX, HIGH);
     }
 
     void setHeltecV4RxMode() {
-        digitalWrite(LORA_PA_POWER, HIGH);
+        digitalWrite(LORA_VFEM_CTRL, HIGH);
         digitalWrite(LORA_FEM_CSD, HIGH);
-        digitalWrite(LORA_GC1109_CPS, LOW);
-        digitalWrite(LORA_KCT8103L_CTX, LOW);
+        digitalWrite(LORA_V42_FEM_CPS, LOW);
+        digitalWrite(LORA_V43_FEM_CTX, LOW);
     }
     #endif
 

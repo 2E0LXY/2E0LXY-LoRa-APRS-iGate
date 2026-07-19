@@ -234,6 +234,7 @@ bool Configuration::readFile() {
         DeserializationError error = deserializeJson(data, configFile);
         if (error) {
             Serial.println("Failed to read file, using default configuration");
+            needsRewrite = true;
         }
 
         wifiAPs.clear();
@@ -500,7 +501,7 @@ void Configuration::setDefaultValues() {
     wifiAutoAP.password             = "1234567890";
     wifiAutoAP.timeout              = 10;
 
-    callsign                        = "N0CALL-10";
+    callsign                        = "NOCALL-10";
     tacticalCallsign                = "";
 
     aprs_is.active                  = false;
@@ -619,7 +620,8 @@ void Configuration::setDefaultValues() {
 
 void Configuration::setup() {
     if (!SPIFFS.begin(false)) {
-        Serial.println("SPIFFS Mount Failed");
+        Serial.println("SPIFFS Mount Failed; using safe in-memory defaults");
+        setDefaultValues();
         return;
     } else {
         Serial.println("SPIFFS Mounted");

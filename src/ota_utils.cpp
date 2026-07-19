@@ -64,7 +64,8 @@ namespace OTA_Utils {
             lastScreenOn = millis();
             ota_progress_millis = millis();
             Serial.printf("OTA Progress Current: %u bytes, Final: %u bytes\n", current, final);
-            displayShow("", "", "  OTA Progress : " + String((current*100)/final) + "%", "", "", "", "", 100);
+            const size_t percent = final > 0 ? (current * 100) / final : 0;
+            displayShow("", "", "  OTA Progress : " + String(percent) + "%", "", "", "", "", 100);
         }
     }
 

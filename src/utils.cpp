@@ -191,7 +191,12 @@ namespace Utils {
             #ifdef HAS_GPS
                 if (Config.beacon.gpsActive && Config.digi.ecoMode == 0) {
                     GPS_Utils::getData();
-                    if (gps.location.isUpdated() && gps.location.lat() != 0.0 && gps.location.lng() != 0.0) {
+                    const bool gpsFixIsFresh =
+                        gps.location.isValid() &&
+                        gps.location.age() < 10000 &&
+                        gps.location.lat() != 0.0 &&
+                        gps.location.lng() != 0.0;
+                    if (gpsFixIsFresh) {
                         String basePacket   = APRSPacketLib::generateBasePacket(Config.callsign, "APLRG1", Config.beacon.path);
                         String encodedGPS   = APRSPacketLib::encodeGPSIntoBase91(gps.location.lat(),gps.location.lng(), 0, 0, Config.beacon.symbol, false, 0, true, Config.beacon.ambiguityLevel);
 
