@@ -28,6 +28,7 @@
 #include "syslog_utils.h"
 #include "A7670_utils.h"
 #include "lora_utils.h"
+#include "mqtt_utils.h"
 #include "wifi_utils.h"
 #include "gps_utils.h"
 #include "wx_utils.h"
@@ -307,6 +308,14 @@ namespace Utils {
             }
 
             lastBeaconTx = millis();
+
+            // Beacon over MQTT — sends the iGate's own position packet to the
+            // configured MQTT broker. Requires Config.mqtt.active = true.
+            // Uses publishBeaconToMqtt() (not sendToMqtt) because beaconPacket
+            // is a clean APRS string without the 3-byte LoRa header.
+            if (Config.mqtt.active && Config.mqtt.beaconOverMqtt) {
+                MQTT_Utils::publishBeaconToMqtt(beaconPacket);
+            }
             lastScreenOn = millis();
             beaconUpdate = false;
         }
