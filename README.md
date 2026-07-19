@@ -1,7 +1,7 @@
 # 2E0LXY LoRa APRS iGate and Digipeater
 
 Firmware for Heltec WiFi LoRa 32 V3.2, Heltec WiFi LoRa 32 V4 and LilyGO TTGO LoRa32 V2.1
-boards operating as UK LoRa APRS iGates and WIDE1/WIDE2 digipeaters.
+boards operating as regional LoRa APRS iGates and configurable digipeaters.
 The Heltec build also supports an external GPS-positioned station.
 
 [Web installer](https://2e0lxy.github.io/2E0LXY-LoRa-APRS-iGate/) |
@@ -11,7 +11,11 @@ The Heltec build also supports an external GPS-positioned station.
 
 ## Highlights
 
-- UK 439.9125 MHz LoRa APRS profile: SF12, 125 kHz, CR 4/5.
+- Backward-compatible UK 439.9125 MHz and IARU Region 1 433.775 MHz
+  presets, plus a locally coordinated custom profile.
+- RF hardware-band/frequency validation, safe new-install defaults and
+  explicit regional confirmation before transmission.
+- Automatic named-timezone daylight saving and selectable display units.
 - Simultaneous receive iGate and configurable WIDE1/WIDE2 digipeater.
 - Board-specific OTA updates that refuse to install the other board's image.
 - Heltec GPS location on GPIO 47 RX and GPIO 48 TX with automatic baud detection.
@@ -52,22 +56,21 @@ selects the exact compatible asset automatically and stops if it is absent.
 Back up the configuration before changing firmware and keep USB power
 connected until installation completes.
 
-## Quick configuration
+## Regional configuration
 
-| Setting | Recommended UK value |
-| --- | --- |
-| Callsign | Your callsign with an appropriate SSID |
-| APRS-IS server | `www.aprsnet.uk` |
-| MQTT server | `www.aprsnet.uk` |
-| APRS-IS port | `14580` |
-| APRS-IS filter | `m/100` |
-| RX/TX frequency | `439912500` Hz |
-| Spreading factor | `SF12` |
-| Bandwidth | `125 kHz` |
-| Coding rate | `4/5` |
-| GPS (Heltec V3.2) | GPIO 47 RX, GPIO 48 TX, automatic baud detection |
-| GPS (Heltec V4 connector) | GPIO 38 RX, GPIO 39 TX, automatic baud detection |
-| Heltec V4 RF front end | Compatible control for GC1109 (V4.2) and KCT8103L (V4.3) |
+| Profile | RX / TX starting point | APRS-IS | Notes |
+| --- | --- | --- | --- |
+| United Kingdom | `439912500` / `439912500` Hz | `www.aprsnet.uk` | Existing devices migrate without operational changes |
+| IARU Region 1 common | `433775000` / `433775000` Hz | `rotate.aprs2.net` | Optional 433.900 MHz split must be locally coordinated |
+| Custom | Operator supplied | Operator supplied | Required for other national or coordinated channel plans |
+
+All presets use SF12, 125 kHz and CR 4/5 as a starting point. Modem settings
+must match the local network. New installations begin with RF transmission
+and digipeating disabled and use 10 dBm when a preset is applied. See
+[Regional profiles](docs/REGIONAL-PROFILES.md).
+
+GPS uses GPIO 47 RX / GPIO 48 TX on Heltec V3.2 and GPIO 38 RX / GPIO 39 TX
+on Heltec V4, with automatic baud detection.
 
 ## APRS Net Remote Management
 
@@ -111,7 +114,8 @@ Each device card shows in real time:
 | RX / TX | Packets received / transmitted since boot |
 | Uptime | Time since last device restart |
 | Hardware / position | Board model, LAN address and GPS or fixed position source |
-| Stations heard (24h) | First/last times, RF packets, RSSI, SNR, frequency error and distance in miles |
+| Region and radio | Country/profile, RX/TX frequency, modem settings, power, timezone and mismatch warning |
+| Stations heard (24h) | First/last times, RF packets, RSSI, SNR, frequency error and distance in the selected unit |
 
 ### Remote commands
 

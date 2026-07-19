@@ -137,6 +137,25 @@ label, .form-label { color: #d9e4ee; font-weight: 650; }
 .form-check-input:checked { background-color: var(--blue); border-color: var(--blue); }
 .form-text, small.text-secondary, .text-muted { color: var(--muted) !important; }
 .feature-help { margin-top: 5px; color: var(--muted); font-size: 12px; line-height: 1.4; }
+.regional-card { border-color: rgba(22, 199, 232, .48) !important; }
+.regional-card h5 { color: #8cecff !important; }
+.region-state {
+    display: inline-flex;
+    margin-top: 14px;
+    padding: 7px 10px;
+    color: var(--amber);
+    background: rgba(255, 173, 10, .08);
+    border: 1px solid rgba(255, 173, 10, .38);
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 750;
+}
+.region-state.is-good {
+    color: var(--green);
+    background: rgba(57, 211, 83, .08);
+    border-color: rgba(57, 211, 83, .38);
+}
+.region-state.is-warning { color: var(--amber); }
 .device-time {
     min-height: 62px;
     display: flex;

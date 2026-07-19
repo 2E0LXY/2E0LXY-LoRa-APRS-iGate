@@ -2,6 +2,37 @@
 
 let currentSettings = null;
 
+const timezoneRules = {
+    "UTC": "UTC0",
+    "Europe/London": "GMT0BST,M3.5.0/1,M10.5.0/2",
+    "Europe/Central": "CET-1CEST,M3.5.0/2,M10.5.0/3",
+    "Europe/Eastern": "EET-2EEST,M3.5.0/3,M10.5.0/4",
+    "America/Eastern": "EST5EDT,M3.2.0/2,M11.1.0/2",
+    "America/Central": "CST6CDT,M3.2.0/2,M11.1.0/2",
+    "America/Mountain": "MST7MDT,M3.2.0/2,M11.1.0/2",
+    "America/Pacific": "PST8PDT,M3.2.0/2,M11.1.0/2",
+    "Australia/Sydney": "AEST-10AEDT,M10.1.0/2,M4.1.0/3",
+    "Pacific/Auckland": "NZST-12NZDT,M9.5.0/2,M4.1.0/3",
+    "Asia/Tokyo": "JST-9"
+};
+
+const regionalProfiles = {
+    uk: {
+        countryCode: "GB", hardwareBand: "433",
+        rxFreq: 439912500, txFreq: 439912500,
+        aprsServer: "www.aprsnet.uk", timezone: "Europe/London",
+        distanceUnit: "mi", altitudeUnit: "m", speedUnit: "mph", temperatureUnit: "c",
+        beaconPath: "WIDE1-1"
+    },
+    iaru1: {
+        countryCode: "", hardwareBand: "433",
+        rxFreq: 433775000, txFreq: 433775000,
+        aprsServer: "rotate.aprs2.net", timezone: "Europe/Central",
+        distanceUnit: "km", altitudeUnit: "m", speedUnit: "kmh", temperatureUnit: "c",
+        beaconPath: ""
+    }
+};
+
 const featureHelp = {
     "callsign": "Your licensed amateur-radio callsign and SSID, used to identify this station on RF and APRS-IS.",
     "tacticalCallsign": "Optional short on-air identity; leave blank to use the main callsign everywhere.",
@@ -14,7 +45,7 @@ const featureHelp = {
     "aprs_is.active": "Connects to APRS-IS to gate valid LoRa APRS packets onto the worldwide APRS network.",
     "aprs_is.messagesToRF": "Allows addressed APRS-IS messages to be transmitted onto RF when routing rules permit.",
     "aprs_is.objectsToRF": "Allows selected APRS-IS objects to be transmitted onto RF; enable only when locally useful.",
-    "aprs_is.server": "Hostname of the APRS-IS server this iGate uses. www.aprsnet.uk is the recommended UK service.",
+    "aprs_is.server": "Hostname of the APRS-IS server this iGate uses. The UK preset uses aprsnet.uk; other profiles use a regional APRS2 rotation endpoint.",
     "aprs_is.filter": "Server-side APRS-IS traffic filter. m/100 keeps traffic local to roughly 100 km and protects the ESP32 from an unnecessary worldwide feed.",
     "beacon.sendViaAPRSIS": "Publishes this station's position beacon directly to APRS-IS.",
     "beacon.sendViaRF": "Transmits this station's position beacon over the LoRa radio.",
@@ -25,7 +56,7 @@ const featureHelp = {
     "digi.backupDigiMode": "Falls back to WIDE1 digipeating when Wi-Fi or APRS-IS is unavailable.",
     "lora.rxActive": "Enables reception of LoRa APRS packets on the configured RX radio profile.",
     "lora.txActive": "Enables all LoRa RF transmissions, including beacons and digipeated packets.",
-    "lora.rxFreq": "Receive frequency in hertz; UK LoRa APRS commonly uses 439.9125 MHz for this profile.",
+    "lora.rxFreq": "Receive frequency in hertz. It must match the selected regional profile and your locally coordinated LoRa APRS network.",
     "lora.txFreq": "Transmit frequency in hertz and normally matches the local LoRa APRS channel plan.",
     "lora.rxSpreadingFactor": "Higher spreading factors improve sensitivity and range but use more airtime.",
     "lora.txSpreadingFactor": "Sets the airtime and robustness of transmitted packets; it must match receiving stations.",
@@ -38,8 +69,83 @@ const featureHelp = {
     "mqtt.active": "Publishes selected iGate data to an MQTT broker for home automation or monitoring.",
     "webadmin.active": "Requires a username and password before the configuration interface can be opened.",
     "remoteManagement.rfOnly": "Accepts authorised management commands only over RF, not through APRS-IS.",
-    "ntp.gmtCorrection": "Local time offset applied to NTP time; use 0 for UK winter and 1 for British Summer Time."
+    "ntp.timezone": "Named timezone used to apply daylight-saving changes automatically.",
+    "ntp.gmtCorrection": "Used only with Custom fixed UTC offset. Named timezones handle daylight saving automatically."
 };
+
+function updateTimezoneFields() {
+    const timezone = document.getElementById("ntp.timezone");
+    const rule = document.getElementById("ntp.timezoneRule");
+    const fixedGroup = document.getElementById("fixed-offset-group");
+    if (!timezone || !rule || !fixedGroup) return;
+    const fixed = timezone.value === "Fixed offset";
+    fixedGroup.classList.toggle("d-none", !fixed);
+    if (!fixed) rule.value = timezoneRules[timezone.value] || "UTC0";
+    else rule.value = "";
+}
+
+function updateRegionalState() {
+    const profile = document.getElementById("regional.profile")?.value;
+    const confirmed = document.getElementById("regional.profileConfirmed")?.checked;
+    const state = document.getElementById("region-state");
+    if (!state) return;
+    state.className = "region-state " + (confirmed ? "is-good" : "is-warning");
+    state.textContent = confirmed
+        ? `Active profile: ${profile === "uk" ? "United Kingdom" : profile === "iaru1" ? "IARU Region 1 common" : "Custom / locally coordinated"}`
+        : "Regional profile must be reviewed before RF transmission";
+}
+
+function applyRegionalProfile() {
+    const profileName = document.getElementById("regional.profile").value;
+    const profile = regionalProfiles[profileName];
+    if (!profile) {
+        if (profileName === "custom") {
+            document.getElementById("regional.profileConfirmed").checked = true;
+            updateRegionalState();
+        }
+        return;
+    }
+    const setValue = (id, value) => {
+        const element = document.getElementById(id);
+        if (element) element.value = value;
+    };
+    setValue("regional.countryCode", profile.countryCode);
+    setValue("regional.hardwareBand", profile.hardwareBand);
+    setValue("regional.distanceUnit", profile.distanceUnit);
+    setValue("regional.altitudeUnit", profile.altitudeUnit);
+    setValue("regional.speedUnit", profile.speedUnit);
+    setValue("regional.temperatureUnit", profile.temperatureUnit);
+    setValue("lora.rxFreq", profile.rxFreq);
+    setValue("lora.txFreq", profile.txFreq);
+    document.getElementById("lora.rxActive").checked = true;
+    // A profile change can move the station to a different RF channel.
+    // Require a separate deliberate TX enable after the new values are saved.
+    document.getElementById("lora.txActive").checked = false;
+    setValue("lora.rxSpreadingFactor", 12);
+    setValue("lora.txSpreadingFactor", 12);
+    setValue("lora.rxCodingRate4", 5);
+    setValue("lora.txCodingRate4", 5);
+    setValue("lora.rxSignalBandwidth", 125000);
+    setValue("lora.txSignalBandwidth", 125000);
+    setValue("lora.power", 10);
+    setValue("aprs_is.server", profile.aprsServer);
+    setValue("aprs_is.port", 14580);
+    setValue("aprs_is.filter", "m/100");
+    setValue("beacon.path", profile.beaconPath);
+    setValue("ntp.timezone", profile.timezone);
+    setValue("ntp.gmtCorrection", 0);
+    document.getElementById("regional.profileConfirmed").checked = true;
+    updateTimezoneFields();
+    updateRegionalState();
+    showToast("Regional defaults applied. LoRa TX is off until you review, save and deliberately enable it.");
+}
+
+document.getElementById("apply-region-profile")?.addEventListener("click", applyRegionalProfile);
+document.getElementById("regional.profile")?.addEventListener("change", function () {
+    document.getElementById("regional.profileConfirmed").checked = false;
+    updateRegionalState();
+});
+document.getElementById("ntp.timezone")?.addEventListener("change", updateTimezoneFields);
 
 for (const [id, explanation] of Object.entries(featureHelp)) {
     const control = document.getElementById(id);
@@ -66,7 +172,7 @@ async function refreshDeviceTime() {
         const clock = await response.json();
         value.textContent = clock.dateTime;
         status.textContent = clock.synchronized
-            ? `Synced with ${clock.server} · GMT offset ${clock.gmtCorrection} h`
+            ? `Synced with ${clock.server} · ${clock.timezone || `UTC offset ${clock.gmtCorrection} h`}`
             : "Waiting for the first successful NTP update";
         status.classList.toggle("is-synced", Boolean(clock.synchronized));
     } catch {
@@ -137,8 +243,14 @@ async function refreshGPS() {
         gpsValue("gps-hdop", data.hdop ? gpsNumber(data.hdop, 2) : "—");
         gpsValue("gps-latitude", data.fixValid ? gpsNumber(data.latitude, 6, "°") : "—");
         gpsValue("gps-longitude", data.fixValid ? gpsNumber(data.longitude, 6, "°") : "—");
-        gpsValue("gps-altitude", data.fixValid ? gpsNumber(data.altitudeMetres, 1, " m") : "—");
-        gpsValue("gps-speed", data.fixValid ? gpsNumber(data.speedKmph, 1) : "—");
+        const altitudeFeet = currentSettings?.regional?.altitudeUnit === "ft";
+        const speedMph = currentSettings?.regional?.speedUnit === "mph";
+        gpsValue("gps-altitude", data.fixValid
+            ? gpsNumber(altitudeFeet ? data.altitudeMetres * 3.28084 : data.altitudeMetres, 1, altitudeFeet ? " ft" : " m")
+            : "—");
+        gpsValue("gps-speed", data.fixValid
+            ? gpsNumber(speedMph ? data.speedKmph * 0.621371 : data.speedKmph, 1, speedMph ? " mph" : " km/h")
+            : "—");
         gpsValue("gps-course", data.fixValid ? gpsNumber(data.courseDegrees, 1, "°") : "—");
         gpsValue("gps-utc", data.utc ?? "—");
         gpsValue("gps-stream", data.seenSerialData
@@ -225,6 +337,15 @@ function fetchSettings() {
 
 function loadSettings(settings) {
     currentSettings = settings;
+    const regional = settings.regional || {};
+    document.getElementById("regional.profile").value = regional.profile || "unconfigured";
+    document.getElementById("regional.countryCode").value = regional.countryCode || "";
+    document.getElementById("regional.hardwareBand").value = regional.hardwareBand || "433";
+    document.getElementById("regional.distanceUnit").value = regional.distanceUnit || "km";
+    document.getElementById("regional.altitudeUnit").value = regional.altitudeUnit || "m";
+    document.getElementById("regional.speedUnit").value = regional.speedUnit || "kmh";
+    document.getElementById("regional.temperatureUnit").value = regional.temperatureUnit || "c";
+    document.getElementById("regional.profileConfirmed").checked = Boolean(regional.profileConfirmed);
     // General
     document.getElementById("callsign").value                           = settings.callsign;
     document.getElementById("tacticalCallsign").value                   = settings.tacticalCallsign;
@@ -438,7 +559,15 @@ function loadSettings(settings) {
     // NTP
     document.getElementById("ntp.server").value                         = settings.ntp.server;
     document.getElementById("ntp.gmtCorrection").value                  = settings.ntp.gmtCorrection;
+    document.getElementById("ntp.timezone").value                       = settings.ntp.timezone || "Fixed offset";
+    document.getElementById("ntp.timezoneRule").value                   = settings.ntp.timezoneRule || "";
 
+    updateTimezoneFields();
+    updateRegionalState();
+    if (!regional.profileConfirmed) {
+        setTimeout(() => document.getElementById("regional-settings")
+            ?.scrollIntoView({ behavior: "smooth", block: "start" }), 250);
+    }
     updateImage();
 }
 
@@ -787,17 +916,26 @@ function checkConnection() {
 form.addEventListener("submit", async (event) => {
     event.preventDefault();
 
+    if (document.getElementById("lora.txActive").checked &&
+        !document.getElementById("regional.profileConfirmed").checked) {
+        document.getElementById("regional-settings").scrollIntoView({ behavior: "smooth", block: "start" });
+        showToast("Review and apply a regional profile before enabling LoRa TX.");
+        return;
+    }
     document.getElementById("wifi.APs").value =
         document.querySelectorAll(".network").length;
 
-    fetch(form.action, {
-        method: form.method,
-        body: new FormData(form),
-    });
-
-    saveModal.show();
-
-    setTimeout(checkConnection, 2000);
+    try {
+        const response = await fetch(form.action, {
+            method: form.method,
+            body: new FormData(form),
+        });
+        if (!response.ok) throw new Error((await response.text()) || `HTTP ${response.status}`);
+        saveModal.show();
+        setTimeout(checkConnection, 2000);
+    } catch (error) {
+        showToast(`Settings were not saved: ${escapeHtml(error.message)}`);
+    }
 });
 
 fetchSettings();

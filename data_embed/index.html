@@ -56,6 +56,76 @@
             <div class="container" id="configuration">
                 <main>
                     <div class="col-10 my-5 mx-auto">
+                        <div class="row my-5 d-flex align-items-top regional-card" id="regional-settings">
+                            <div class="col-lg-3 col-sm-12">
+                                <h5>🌍 Region &amp; units</h5>
+                                <small>
+                                    Select the local LoRa APRS plan before enabling RF transmission.
+                                    Presets fill the form but remain editable. Always follow your licence,
+                                    national band plan and local frequency coordination.
+                                </small>
+                                <div class="region-state" id="region-state">Checking regional profile…</div>
+                            </div>
+                            <div class="col-lg-9 col-sm-12">
+                                <div class="row g-3">
+                                    <div class="col-lg-4 col-12">
+                                        <label for="regional.profile" class="form-label">Regional profile</label>
+                                        <select name="regional.profile" id="regional.profile" class="form-select">
+                                            <option value="unconfigured">Choose a region…</option>
+                                            <option value="uk">United Kingdom · 439.9125 MHz</option>
+                                            <option value="iaru1">IARU Region 1 common · 433.775 MHz</option>
+                                            <option value="custom">Custom / locally coordinated</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-lg-4 col-6">
+                                        <label for="regional.countryCode" class="form-label">Country code</label>
+                                        <input type="text" maxlength="3" name="regional.countryCode" id="regional.countryCode"
+                                               class="form-control" placeholder="GB" oninput="this.value=this.value.toUpperCase();" />
+                                    </div>
+                                    <div class="col-lg-4 col-6">
+                                        <label for="regional.hardwareBand" class="form-label">Radio hardware band</label>
+                                        <select name="regional.hardwareBand" id="regional.hardwareBand" class="form-select">
+                                            <option value="433">433 MHz hardware</option>
+                                            <option value="868-915">868 / 915 MHz hardware</option>
+                                            <option value="wide">Wide-band/custom module</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-12">
+                                        <button type="button" class="btn btn-primary" id="apply-region-profile">Apply selected profile</button>
+                                        <input type="checkbox" class="visually-hidden" name="regional.profileConfirmed"
+                                               id="regional.profileConfirmed" />
+                                        <span class="feature-help d-inline ms-2" id="regional-profile-help">
+                                            Applying a preset does not save or reboot until you click Save changes.
+                                        </span>
+                                    </div>
+                                    <div class="col-md-3 col-6">
+                                        <label for="regional.distanceUnit" class="form-label">Distance</label>
+                                        <select name="regional.distanceUnit" id="regional.distanceUnit" class="form-select">
+                                            <option value="km">Kilometres</option><option value="mi">Miles</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3 col-6">
+                                        <label for="regional.altitudeUnit" class="form-label">Altitude</label>
+                                        <select name="regional.altitudeUnit" id="regional.altitudeUnit" class="form-select">
+                                            <option value="m">Metres</option><option value="ft">Feet</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3 col-6">
+                                        <label for="regional.speedUnit" class="form-label">Speed</label>
+                                        <select name="regional.speedUnit" id="regional.speedUnit" class="form-select">
+                                            <option value="kmh">km/h</option><option value="mph">mph</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3 col-6">
+                                        <label for="regional.temperatureUnit" class="form-label">Temperature</label>
+                                        <select name="regional.temperatureUnit" id="regional.temperatureUnit" class="form-select">
+                                            <option value="c">°C</option><option value="f">°F</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <hr>
                         <div class="row my-5 d-flex align-items-top">
                             <div class="col-lg-3 col-sm-12">
                                 <h5>
@@ -303,8 +373,8 @@
                                     <div class="gps-stat"><span>HDOP</span><strong id="gps-hdop">—</strong><small>Lower is more accurate</small></div>
                                     <div class="gps-stat gps-stat--coordinate"><span>Latitude</span><strong id="gps-latitude">—</strong></div>
                                     <div class="gps-stat gps-stat--coordinate"><span>Longitude</span><strong id="gps-longitude">—</strong></div>
-                                    <div class="gps-stat"><span>Altitude</span><strong id="gps-altitude">—</strong><small>Metres above mean sea level</small></div>
-                                    <div class="gps-stat"><span>Speed</span><strong id="gps-speed">—</strong><small>km/h</small></div>
+                                    <div class="gps-stat"><span>Altitude</span><strong id="gps-altitude">—</strong><small>Selected regional unit</small></div>
+                                    <div class="gps-stat"><span>Speed</span><strong id="gps-speed">—</strong><small>Selected regional unit</small></div>
                                     <div class="gps-stat"><span>Course</span><strong id="gps-course">—</strong><small>Degrees true</small></div>
                                     <div class="gps-stat gps-stat--wide"><span>GPS UTC time</span><strong id="gps-utc">—</strong><small id="gps-stream">Waiting for receiver data</small></div>
                                     <div class="gps-stat"><span>NMEA accepted</span><strong id="gps-passed">—</strong><small>Checksum passed</small></div>
@@ -2181,9 +2251,7 @@
                                     </svg>
                                     NTP
                                 </h5>
-                                <small
-                                    >Set your GMT Time Zone.
-                                </small>
+                                <small>Synchronise UTC with NTP and automatically apply the selected timezone and daylight-saving rules.</small>
                             </div>
                             <div class="col-lg-9 col-sm-12">
                                 <div class="row">
@@ -2204,24 +2272,29 @@
                                     </div>
                                     <div class="col-lg-4 col-12 mt-3 mt-lg-0">
                                         <label
-                                            for="ntp.gmtCorrection"
+                                            for="ntp.timezone"
                                             class="form-label"
-                                            >GMT Time Correction Offset</label
+                                            >Timezone</label
                                         >
-                                        <div class="input-group">
-                                            <input
-                                                type="number"
-                                                name="ntp.gmtCorrection"
-                                                id="ntp.gmtCorrection"
-                                                placeholder="0"
-                                                class="form-control"
-                                                step="0.25"
-                                                min="-23.75"
-                                                max="23.75"
-                                            />
-                                            <span class="input-group-text"
-                                                >hours</span
-                                            >
+                                        <select name="ntp.timezone" id="ntp.timezone" class="form-select">
+                                            <option value="UTC">UTC</option>
+                                            <option value="Europe/London">Europe/London</option>
+                                            <option value="Europe/Central">Central Europe</option>
+                                            <option value="Europe/Eastern">Eastern Europe</option>
+                                            <option value="America/Eastern">North America · Eastern</option>
+                                            <option value="America/Central">North America · Central</option>
+                                            <option value="America/Mountain">North America · Mountain</option>
+                                            <option value="America/Pacific">North America · Pacific</option>
+                                            <option value="Australia/Sydney">Australia/Sydney</option>
+                                            <option value="Pacific/Auckland">Pacific/Auckland</option>
+                                            <option value="Asia/Tokyo">Asia/Tokyo</option>
+                                            <option value="Fixed offset">Custom fixed UTC offset</option>
+                                        </select>
+                                        <input type="hidden" name="ntp.timezoneRule" id="ntp.timezoneRule" />
+                                        <div class="input-group mt-2 d-none" id="fixed-offset-group">
+                                            <input type="number" name="ntp.gmtCorrection" id="ntp.gmtCorrection"
+                                                   class="form-control" step="0.25" min="-23.75" max="23.75" />
+                                            <span class="input-group-text">hours from UTC</span>
                                         </div>
                                     </div>
                                     <div class="col-lg-4 col-12 mt-3 mt-lg-0">
@@ -2230,7 +2303,7 @@
                                             <strong id="device-time-value">Checking NTP…</strong>
                                             <span id="device-time-status">Waiting for the device clock</span>
                                         </div>
-                                        <div class="feature-help">Time reported by the iGate after applying the GMT correction above.</div>
+                                        <div class="feature-help">Current local time reported by the iGate after applying the selected timezone and daylight-saving rule.</div>
                                     </div>
                                 </div>
                             </div>

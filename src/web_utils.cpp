@@ -68,6 +68,10 @@ extern const char web_diagnostics_js[] asm("_binary_data_embed_diagnostics_js_gz
 extern const char web_diagnostics_js_end[] asm("_binary_data_embed_diagnostics_js_gz_end");
 extern const size_t web_diagnostics_js_len = web_diagnostics_js_end - web_diagnostics_js;
 
+extern const char regional_profiles_json[] asm("_binary_data_embed_regional_profiles_json_gz_start");
+extern const char regional_profiles_json_end[] asm("_binary_data_embed_regional_profiles_json_gz_end");
+extern const size_t regional_profiles_json_len = regional_profiles_json_end - regional_profiles_json;
+
 extern const char web_bootstrap_css[] asm("_binary_data_embed_bootstrap_css_gz_start");
 extern const char web_bootstrap_css_end[] asm("_binary_data_embed_bootstrap_css_gz_end");
 extern const size_t web_bootstrap_css_len = web_bootstrap_css_end - web_bootstrap_css;
@@ -168,6 +172,7 @@ el('check').onclick=check;el('install').onclick=install;check();
         data["synchronized"] = NTP_Utils::isTimeSet();
         data["server"] = Config.ntp.server;
         data["gmtCorrection"] = Config.ntp.gmtCorrection;
+        data["timezone"] = Config.ntp.timezone;
 
         String buffer;
         serializeJson(data, buffer);
@@ -372,6 +377,17 @@ el('check').onclick=check;el('install').onclick=install;check();
         request->send(response);
     }
 
+    void handleRegionalProfiles(AsyncWebServerRequest *request) {
+        if(Config.webadmin.active && !request->authenticate(Config.webadmin.username.c_str(), Config.webadmin.password.c_str()))
+            return request->requestAuthentication();
+        AsyncWebServerResponse *response = request->beginResponse(
+            200, "application/json", (const uint8_t*)regional_profiles_json, regional_profiles_json_len
+        );
+        response->addHeader("Content-Encoding", "gzip");
+        response->addHeader("Cache-Control", "max-age=3600");
+        request->send(response);
+    }
+
     void handleDiagnosticsJson(AsyncWebServerRequest *request) {
         if(Config.webadmin.active && !request->authenticate(Config.webadmin.username.c_str(), Config.webadmin.password.c_str()))
             return request->requestAuthentication();
@@ -380,6 +396,44 @@ el('check').onclick=check;el('install').onclick=install;check();
         data["uptimeSeconds"] = millis() / 1000;
         data["freeHeap"] = ESP.getFreeHeap();
         data["wifiRssi"] = WiFi.status() == WL_CONNECTED ? WiFi.RSSI() : 0;
+        data["regional"]["profile"] = Config.regional.profile;
+        data["regional"]["countryCode"] = Config.regional.countryCode;
+        data["regional"]["hardwareBand"] = Config.regional.hardwareBand;
+        data["regional"]["profileConfirmed"] = Config.regional.profileConfirmed;
+        data["regional"]["timezone"] = Config.ntp.timezone;
+        data["regional"]["distanceUnit"] = Config.regional.distanceUnit;
+        data["regional"]["altitudeUnit"] = Config.regional.altitudeUnit;
+        data["regional"]["speedUnit"] = Config.regional.speedUnit;
+        data["regional"]["temperatureUnit"] = Config.regional.temperatureUnit;
+        data["regional"]["profileMatches"] =
+            (Config.regional.profile == "uk" &&
+             Config.loramodule.rxFreq == 439912500 &&
+             Config.loramodule.txFreq == 439912500 &&
+             Config.loramodule.rxSpreadingFactor == 12 &&
+             Config.loramodule.txSpreadingFactor == 12 &&
+             Config.loramodule.rxSignalBandwidth == 125000 &&
+             Config.loramodule.txSignalBandwidth == 125000 &&
+             Config.loramodule.rxCodingRate4 == 5 &&
+             Config.loramodule.txCodingRate4 == 5) ||
+            (Config.regional.profile == "iaru1" &&
+             Config.loramodule.rxFreq == 433775000 &&
+             (Config.loramodule.txFreq == 433775000 || Config.loramodule.txFreq == 433900000) &&
+             Config.loramodule.rxSpreadingFactor == 12 &&
+             Config.loramodule.txSpreadingFactor == 12 &&
+             Config.loramodule.rxSignalBandwidth == 125000 &&
+             Config.loramodule.txSignalBandwidth == 125000 &&
+             Config.loramodule.rxCodingRate4 == 5 &&
+             Config.loramodule.txCodingRate4 == 5) ||
+            Config.regional.profile == "custom";
+        data["radioProfile"]["rxFrequency"] = Config.loramodule.rxFreq;
+        data["radioProfile"]["txFrequency"] = Config.loramodule.txFreq;
+        data["radioProfile"]["rxSpreadingFactor"] = Config.loramodule.rxSpreadingFactor;
+        data["radioProfile"]["txSpreadingFactor"] = Config.loramodule.txSpreadingFactor;
+        data["radioProfile"]["rxBandwidth"] = Config.loramodule.rxSignalBandwidth;
+        data["radioProfile"]["txBandwidth"] = Config.loramodule.txSignalBandwidth;
+        data["radioProfile"]["rxCodingRate"] = Config.loramodule.rxCodingRate4;
+        data["radioProfile"]["txCodingRate"] = Config.loramodule.txCodingRate4;
+        data["radioProfile"]["power"] = Config.loramodule.power;
         data["radio"]["rxValid"] = stats.rxValid;
         data["radio"]["rxDuplicates"] = stats.rxDuplicates;
         data["radio"]["rxCrcErrors"] = stats.rxCrcErrors;
@@ -495,6 +549,11 @@ el('check').onclick=check;el('install').onclick=install;check();
             return defaultValue;
         };
 
+        // Keep the running configuration intact if validation or persistence
+        // fails. This is especially important now that regional presets can
+        // change several related radio fields at once.
+        const Configuration previousConfig = Config;
+
         const int networks = constrain(getParamIntSafe("wifi.APs"), 0, 10);
 
         Config.wifiAPs = {};
@@ -511,6 +570,14 @@ el('check').onclick=check;el('install').onclick=install;check();
 
         Config.callsign                     = getParamStringSafe("callsign", Config.callsign);
         Config.tacticalCallsign             = getParamStringSafe("tacticalCallsign", Config.tacticalCallsign);
+        Config.regional.profile             = getParamStringSafe("regional.profile", Config.regional.profile);
+        Config.regional.countryCode         = getParamStringSafe("regional.countryCode", Config.regional.countryCode);
+        Config.regional.hardwareBand        = getParamStringSafe("regional.hardwareBand", Config.regional.hardwareBand);
+        Config.regional.distanceUnit        = getParamStringSafe("regional.distanceUnit", Config.regional.distanceUnit);
+        Config.regional.altitudeUnit        = getParamStringSafe("regional.altitudeUnit", Config.regional.altitudeUnit);
+        Config.regional.speedUnit           = getParamStringSafe("regional.speedUnit", Config.regional.speedUnit);
+        Config.regional.temperatureUnit     = getParamStringSafe("regional.temperatureUnit", Config.regional.temperatureUnit);
+        Config.regional.profileConfirmed    = request->hasParam("regional.profileConfirmed", true);
         Config.wifiAutoAP.enabled           = request->hasParam("wifi.autoAP.enabled", true);
         Config.wifiAutoAP.password          = getParamStringSafe("wifi.autoAP.password", Config.wifiAutoAP.password);
         Config.wifiAutoAP.timeout           = getParamIntSafe("wifi.autoAP.timeout", Config.wifiAutoAP.timeout);
@@ -643,8 +710,66 @@ el('check').onclick=check;el('install').onclick=install;check();
 
         Config.ntp.server                   = getParamStringSafe("ntp.server", Config.ntp.server);
         Config.ntp.gmtCorrection            = getParamFloatSafe("ntp.gmtCorrection", Config.ntp.gmtCorrection);
+        Config.ntp.timezone                 = getParamStringSafe("ntp.timezone", Config.ntp.timezone);
+        Config.ntp.timezoneRule             = getParamStringSafe("ntp.timezoneRule", Config.ntp.timezoneRule);
 
         Config.rememberStationTime          = getParamIntSafe("other.rememberStationTime", Config.rememberStationTime);
+
+        const bool profileValid =
+            Config.regional.profile == "uk" ||
+            Config.regional.profile == "iaru1" ||
+            Config.regional.profile == "custom" ||
+            Config.regional.profile == "unconfigured";
+        const bool hardwareBandValid =
+            Config.regional.hardwareBand == "433" ||
+            Config.regional.hardwareBand == "868-915" ||
+            Config.regional.hardwareBand == "wide";
+        const bool unitsValid =
+            (Config.regional.distanceUnit == "mi" || Config.regional.distanceUnit == "km") &&
+            (Config.regional.altitudeUnit == "ft" || Config.regional.altitudeUnit == "m") &&
+            (Config.regional.speedUnit == "mph" || Config.regional.speedUnit == "kmh") &&
+            (Config.regional.temperatureUnit == "f" || Config.regional.temperatureUnit == "c");
+        const bool presetRadioMatches =
+            Config.regional.profile == "custom" ||
+            Config.regional.profile == "unconfigured" ||
+            (Config.regional.profile == "uk" &&
+             Config.loramodule.rxFreq == 439912500 &&
+             Config.loramodule.txFreq == 439912500 &&
+             Config.loramodule.rxSpreadingFactor == 12 &&
+             Config.loramodule.txSpreadingFactor == 12 &&
+             Config.loramodule.rxSignalBandwidth == 125000 &&
+             Config.loramodule.txSignalBandwidth == 125000 &&
+             Config.loramodule.rxCodingRate4 == 5 &&
+             Config.loramodule.txCodingRate4 == 5) ||
+            (Config.regional.profile == "iaru1" &&
+             Config.loramodule.rxFreq == 433775000 &&
+             (Config.loramodule.txFreq == 433775000 || Config.loramodule.txFreq == 433900000) &&
+             Config.loramodule.rxSpreadingFactor == 12 &&
+             Config.loramodule.txSpreadingFactor == 12 &&
+             Config.loramodule.rxSignalBandwidth == 125000 &&
+             Config.loramodule.txSignalBandwidth == 125000 &&
+             Config.loramodule.rxCodingRate4 == 5 &&
+             Config.loramodule.txCodingRate4 == 5);
+        const bool unconfirmedTX = Config.loramodule.txActive && !Config.regional.profileConfirmed;
+        String validationError;
+        if (!profileValid || !hardwareBandValid || !unitsValid ||
+            Config.regional.countryCode.length() > 3 ||
+            Config.ntp.timezone.length() > 48 ||
+            Config.ntp.timezoneRule.length() > 80 ||
+            !presetRadioMatches ||
+            unconfirmedTX ||
+            !Config.validateRadioSettings(validationError)) {
+            Config = previousConfig;
+            if (validationError.isEmpty()) {
+                validationError = unconfirmedTX
+                    ? "Confirm a regional profile before enabling LoRa TX"
+                    : !presetRadioMatches
+                        ? "Radio values differ from the selected preset; choose Custom for locally coordinated settings"
+                        : "Regional profile contains an unsupported value";
+            }
+            request->send(400, "text/plain", validationError);
+            return;
+        }
 
         bool saveSuccess = Config.writeFile();
 
@@ -658,6 +783,7 @@ el('check').onclick=check;el('install').onclick=install;check();
             delay(500);
             ESP.restart();
         } else {
+            Config = previousConfig;
             Serial.println("Error saving configuration!");
             String errorPage = "<!DOCTYPE html><html><head><title>Error</title></head><body>";
             errorPage += "<h1>Configuration Error:</h1>";
@@ -685,21 +811,36 @@ el('check').onclick=check;el('install').onclick=install;check();
 
             request->send(200, "text/plain", "Beacon will be sent in a while");
         } else if (type == "apply-uk-lora-profile") {
+            Config.regional.profile = "uk";
+            Config.regional.countryCode = "GB";
+            Config.regional.hardwareBand = "433";
+            Config.regional.distanceUnit = "mi";
+            Config.regional.altitudeUnit = "m";
+            Config.regional.speedUnit = "mph";
+            Config.regional.temperatureUnit = "c";
+            Config.regional.profileConfirmed = true;
+            Config.ntp.timezone = "Europe/London";
+            Config.ntp.timezoneRule = "GMT0BST,M3.5.0/1,M10.5.0/2";
+            Config.ntp.gmtCorrection = 0;
+            Config.aprs_is.server = "rotate.aprs2.net";
+            Config.aprs_is.port = 14580;
+            Config.beacon.path = "";
             Config.loramodule.rxActive = true;
             Config.loramodule.rxFreq = 439912500;
             Config.loramodule.rxSpreadingFactor = 12;
             Config.loramodule.rxCodingRate4 = 5;
             Config.loramodule.rxSignalBandwidth = 125000;
-            Config.loramodule.txActive = true;
+            Config.loramodule.txActive = false;
             Config.loramodule.txFreq = 439912500;
             Config.loramodule.txSpreadingFactor = 12;
             Config.loramodule.txCodingRate4 = 5;
             Config.loramodule.txSignalBandwidth = 125000;
+            Config.loramodule.power = 10;
             if (!Config.writeFile()) {
                 request->send(500, "text/plain", "Could not save UK LoRa profile");
                 return;
             }
-            request->send(200, "text/plain", "UK LoRa profile saved; rebooting");
+            request->send(200, "text/plain", "UK LoRa profile saved with TX disabled; rebooting");
             delay(250);
             ESP.restart();
         } else if (type == "set-fallback-location") {
@@ -771,6 +912,7 @@ el('check').onclick=check;el('install').onclick=install;check();
             server.on("/diagnostics", HTTP_GET, handleDiagnostics);
             server.on("/diagnostics.js", HTTP_GET, handleDiagnosticsScript);
             server.on("/diagnostics.json", HTTP_GET, handleDiagnosticsJson);
+            server.on("/regional-profiles.json", HTTP_GET, handleRegionalProfiles);
             server.on("/firmware-update", HTTP_GET, handleFirmwareUpdate);
             server.on("/wifi-scan.json", HTTP_GET, handleWiFiScan);
             server.on("/configuration.json", HTTP_GET, handleReadConfiguration);

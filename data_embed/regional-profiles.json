@@ -1,0 +1,40 @@
+{
+  "schema": 1,
+  "version": "2026.07.19",
+  "lastReviewed": "2026-07-19",
+  "notice": "Presets are starting points only. The licensed operator remains responsible for national regulations, local coordination, antenna gain and permitted power.",
+  "profiles": [
+    {
+      "id": "uk",
+      "name": "United Kingdom",
+      "countryCode": "GB",
+      "rxFrequency": 439912500,
+      "txFrequency": 439912500,
+      "spreadingFactor": 12,
+      "bandwidth": 125000,
+      "codingRate": 5,
+      "defaultPowerDbm": 10,
+      "aprsIsServer": "www.aprsnet.uk",
+      "timezone": "Europe/London",
+      "timezoneRule": "GMT0BST,M3.5.0/1,M10.5.0/2",
+      "beaconPath": "WIDE1-1"
+    },
+    {
+      "id": "iaru1",
+      "name": "IARU Region 1 common LoRa APRS",
+      "countryCode": "",
+      "rxFrequency": 433775000,
+      "txFrequency": 433775000,
+      "optionalCoordinatedTxFrequency": 433900000,
+      "spreadingFactor": 12,
+      "bandwidth": 125000,
+      "codingRate": 5,
+      "defaultPowerDbm": 10,
+      "aprsIsServer": "rotate.aprs2.net",
+      "timezone": "Europe/Central",
+      "timezoneRule": "CET-1CEST,M3.5.0/2,M10.5.0/3",
+      "beaconPath": "",
+      "source": "https://www.iaru-r1.org/wp-content/uploads/2021/03/VHF_Handbook_V9.01.pdf"
+    }
+  ]
+}

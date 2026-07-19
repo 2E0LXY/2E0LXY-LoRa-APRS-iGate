@@ -1,11 +1,11 @@
 # 2E0LXY LoRa APRS iGate and Digipeater Manual
 
-Version 1.2.0 - Heltec V3.2, Heltec V4 and LilyGO LoRa32 V2.1 - July 2026
+Version 1.3.0 - Heltec V3.2, Heltec V4 and LilyGO LoRa32 V2.1 - July 2026
 
 ## 1. Purpose
 
 This firmware turns a Heltec WiFi LoRa 32 V3.2, Heltec WiFi LoRa 32 V4 or LilyGO TTGO LoRa32
-V2.1 into a UK LoRa APRS receive iGate, APRS-IS connected station and
+V2.1 into a region-configurable LoRa APRS receive iGate, APRS-IS connected station and
 configurable WIDE1/WIDE2 digipeater. It includes a modern browser
 interface, RF packet map, diagnostics, Wi-Fi scanning and board-safe
 GitHub OTA updates. The Heltec build also supports external GPS.
@@ -13,7 +13,7 @@ GitHub OTA updates. The Heltec build also supports external GPS.
 ## 2. Safety and licence
 
 - An amateur-radio licence and valid callsign are required for RF transmission.
-- Check the current UK band plan and local coordination before transmitting.
+- Check the current national band plan and local coordination before transmitting.
 - Use the minimum RF power that provides reliable local coverage.
 - Back up configuration before updating firmware.
 - Keep USB power connected throughout installation.
@@ -88,18 +88,28 @@ its recovery access point becomes available. Connect to it and open
 `http://192.168.4.1/`. Change all default and recovery passwords before
 placing the device in service.
 
-## 6. Recommended UK LoRa APRS profile
+## 6. Regional LoRa APRS profiles
 
-| Parameter | Value |
-| --- | --- |
-| RX frequency | 439.9125 MHz |
-| TX frequency | 439.9125 MHz |
-| Spreading factor | SF12 |
-| Signal bandwidth | 125 kHz |
-| Coding rate | 4/5 |
-| TX power | Use the minimum needed |
+| Profile | RX frequency | TX frequency | APRS-IS |
+| --- | --- | --- | --- |
+| United Kingdom | 439.9125 MHz | 439.9125 MHz | `www.aprsnet.uk` |
+| IARU Region 1 common | 433.775 MHz | 433.775 MHz | `rotate.aprs2.net` |
+| Custom / locally coordinated | Operator supplied | Operator supplied | Operator supplied |
 
-Both ends of an RF link must use matching modulation parameters.
+Presets use SF12, 125 kHz and CR 4/5. A 433.900 MHz Region 1 TX split is
+available by editing the TX field but is never enabled automatically. There
+is no universal North American or worldwide channel: use the applicable
+national band plan and local coordinator. Both ends of an RF link must use
+matching modulation parameters.
+
+Select the physical radio hardware band first. The firmware rejects
+frequencies outside that band and rejects unsupported LoRa power, bandwidth
+and coding-rate values. A new installation starts with LoRa TX and
+digipeating disabled. Existing UK configurations retain their operational
+settings during migration.
+
+The Region section also controls miles/kilometres, metres/feet, mph/km/h and
+°C/°F. Named timezones automatically apply daylight-saving changes.
 
 ## 7. Station configuration
 
@@ -133,11 +143,11 @@ credentials.
 
 ## 9. APRS-IS
 
-Recommended settings:
+The regional preset supplies starting settings:
 
 | Setting | Value |
 | --- | --- |
-| Server | `www.aprsnet.uk` |
+| Server | UK: `www.aprsnet.uk`; other regions: `rotate.aprs2.net` or a regional server |
 | Port | `14580` |
 | Filter | `m/100` |
 | Passcode | Callsign-specific APRS-IS passcode |
@@ -186,9 +196,9 @@ CRC-failed frames are counted but never repaired, gated or repeated.
 ## 13. Time
 
 The NTP section displays the actual device time, synchronization state,
-server and GMT correction. Use GMT offset `0` in UK winter and `1`
-during British Summer Time. Confirm the displayed time after changing
-the offset.
+server and named timezone. Named zones automatically follow their configured
+daylight-saving rule. A fixed UTC offset remains available for locations that
+do not use a listed zone. Confirm the displayed time after changing it.
 
 ## 14. Backup, restore and security
 

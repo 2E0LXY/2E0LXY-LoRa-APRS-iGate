@@ -34,6 +34,7 @@ LINE = colors.HexColor("#BCD1E1")
 
 
 def esc(text: str) -> str:
+    text = text.replace("–", "-").replace("—", "-").replace("‑", "-")
     text = text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
     text = re.sub(r"`([^`]+)`", r"<font name='Courier'>\1</font>", text)
     text = re.sub(r"\*\*([^*]+)\*\*", r"<b>\1</b>", text)
@@ -82,7 +83,7 @@ def page_decor(canvas, doc):
     canvas.drawString(16 * mm, height - 9.5 * mm, "2E0LXY LoRa APRS iGate")
     canvas.setFillColor(colors.white)
     canvas.setFont("Helvetica", 8)
-    canvas.drawRightString(width - 16 * mm, height - 9.5 * mm, "Heltec V3.2/V4 + LilyGO - Firmware v1.1.10")
+    canvas.drawRightString(width - 16 * mm, height - 9.5 * mm, "Heltec V3.2/V4 + LilyGO - Firmware v1.3.0")
     canvas.setStrokeColor(LINE)
     canvas.line(16 * mm, 13 * mm, width - 16 * mm, 13 * mm)
     canvas.setFillColor(MUTED)
@@ -109,7 +110,7 @@ cover = Table(
      [Paragraph("Installation, configuration and operation manual", styles["CoverSub"])],
      [Spacer(1, 5 * mm)],
      [Paragraph("Heltec WiFi LoRa 32 V3.2/V4 and LilyGO LoRa32 V2.1", styles["CoverSub"])],
-     [Paragraph("UK 439.9125 MHz profile - Firmware v1.1.10 - July 2026", styles["CoverSub"])]],
+     [Paragraph("Regional profiles and safe first-run setup - Firmware v1.3.0 - July 2026", styles["CoverSub"])]],
     colWidths=[doc.width],
     rowHeights=[18 * mm, 17 * mm, 12 * mm, 10 * mm, 8 * mm, 8 * mm],
 )

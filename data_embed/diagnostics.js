@@ -11,12 +11,19 @@ async function refresh(){
       metric("TX successful",r.txSuccess),metric("TX errors",r.txErrors),
       metric("Free heap",`${data.freeHeap} bytes`),metric("Wi-Fi RSSI",`${data.wifiRssi} dBm`)
     ].join("");
+    const region=data.regional||{},profile=data.radioProfile||{};
+    const profileNames={uk:"United Kingdom",iaru1:"IARU Region 1 common",custom:"Custom / locally coordinated",unconfigured:"Not configured"};
+    document.getElementById("regionState").textContent=`${profileNames[region.profile]||region.profile||"Unknown"} · ${region.countryCode||"no country"}`;
+    document.getElementById("regionState").className=region.profileConfirmed&&region.profileMatches?"safe":"warn";
+    document.getElementById("regionDetail").textContent=
+      `RX ${profile.rxFrequency} Hz · TX ${profile.txFrequency} Hz · SF${profile.rxSpreadingFactor} · CR 4/${profile.rxCodingRate} · ${profile.rxBandwidth} Hz · ${profile.power} dBm · ${region.timezone||"timezone not set"} · distance ${region.distanceUnit||"km"}`+
+      (region.profileMatches?"":" · Warning: radio values differ from the selected preset");
     const scan=data.profileScanner;
     document.getElementById("scanState").textContent=scan.enabled?(scan.secondaryActive?"Secondary active":"Enabled · primary active"):"Disabled";
     document.getElementById("scanState").className=scan.enabled?"warn":"safe";
     document.getElementById("scanDetail").textContent=scan.enabled
       ? `${scan.frequency} Hz · SF${scan.spreadingFactor} · CR 4/${scan.codingRate} · ${scan.bandwidth} Hz · ${scan.dwell}s every ${scan.interval}s`
-      :"Primary UK profile remains active continuously.";
+      :"Primary regional profile remains active continuously.";
     const body=document.getElementById("stations");body.replaceChildren();
     data.heardStations.forEach(s=>{const row=document.createElement("tr");td(row,s.callsign);td(row,s.packets);td(row,s.lastHeard);
       td(row,`${s.lastRssi} / ${s.avgRssi.toFixed(1)} / ${s.minRssi}…${s.maxRssi} dBm`);

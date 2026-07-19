@@ -27,6 +27,7 @@ files = [
   'data_embed/packet-map.js',
   'data_embed/diagnostics.html',
   'data_embed/diagnostics.js',
+  'data_embed/regional-profiles.json',
   'data_embed/style.css',
   'data_embed/bootstrap.js',
   'data_embed/bootstrap.css',

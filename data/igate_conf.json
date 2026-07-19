@@ -16,7 +16,7 @@
         "interval": 15,
         "overlay": "L",
         "symbol": "a",
-        "path": "WIDE1-1",
+        "path": "",
         "sendViaAPRSIS": false,
         "sendViaRF": false,
         "beaconFreq": 1,
@@ -29,7 +29,7 @@
         "active": false,
         "messagesToRF": false,
         "objectsToRF": false,
-        "server": "www.aprsnet.uk",
+        "server": "rotate.aprs2.net",
         "passcode": "XYZVW",        
         "port": 14580,
         "filter": "m/100"
@@ -42,7 +42,7 @@
         "backupDigiMode": false
     },
     "lora": {
-        "rxActive": true,
+        "rxActive": false,
         "rxFreq": 439912500,
         "rxSpreadingFactor": 12,
         "rxCodingRate4": 5,
@@ -52,7 +52,7 @@
         "txSpreadingFactor": 12,
         "txCodingRate4": 5,
         "txSignalBandwidth": 125000,
-        "power": 20,
+        "power": 10,
         "scanActive": false,
         "scanFreq": 0,
         "scanSpreadingFactor": 12,
@@ -120,7 +120,19 @@
     },
     "ntp": {
         "server": "pool.ntp.org",
-        "gmtCorrection": 0.0
+        "gmtCorrection": 0.0,
+        "timezone": "UTC",
+        "timezoneRule": "UTC0"
+    },
+    "regional": {
+        "profile": "unconfigured",
+        "countryCode": "",
+        "hardwareBand": "433",
+        "distanceUnit": "km",
+        "altitudeUnit": "m",
+        "speedUnit": "kmh",
+        "temperatureUnit": "c",
+        "profileConfirmed": false
     },
     "other": {
         "rememberStationTime": 30,
