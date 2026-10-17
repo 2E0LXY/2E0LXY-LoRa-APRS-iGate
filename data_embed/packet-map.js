@@ -18,34 +18,74 @@ function base91(value) {
     return decoded;
 }
 
+// Mic-E (APRS 1.0.1 ch.10): latitude + flags are in the destination address, the rest in the
+// information field. Verified against the aprslib decoder (see Advanced-APRS-Go-server mice_test.go).
+function parseMicE(frame, info) {
+    const gt = frame.indexOf(">"), colon = frame.indexOf(":");
+    if (gt < 0 || colon < gt || info.length < 9) return null;
+    const dest = frame.slice(gt + 1, colon).split(",")[0].split("-")[0];
+    if (dest.length < 6) return null;
+    const digit = [], high = [];
+    for (let i = 0; i < 6; i++) {
+        const c = dest[i];
+        if (c >= "0" && c <= "9") { digit.push(c.charCodeAt(0) - 48); high.push(false); }
+        else if (c >= "A" && c <= "J" && i < 3) { digit.push(c.charCodeAt(0) - 65); high.push(true); }
+        else if (c === "K" && i < 3) { digit.push(0); high.push(true); }
+        else if (c === "L") { digit.push(0); high.push(false); }
+        else if (c >= "P" && c <= "Y") { digit.push(c.charCodeAt(0) - 80); high.push(true); }
+        else if (c === "Z") { digit.push(0); high.push(true); }
+        else return null;
+    }
+    const latDeg = digit[0] * 10 + digit[1];
+    const latMin = digit[2] * 10 + digit[3] + (digit[4] * 10 + digit[5]) / 100;
+    if (latDeg > 90 || latMin >= 60) return null;
+    let lat = latDeg + latMin / 60;
+    if (!high[3]) lat = -lat;                 // 0-9/L = South, P-Z = North
+    const lonOffset = high[4] ? 100 : 0;      // P-Z = +100 degrees
+    const west = high[5];                     // P-Z = West
+    for (let i = 1; i <= 8; i++) if (info.charCodeAt(i) < 28) return null;
+    let d = info.charCodeAt(1) - 28 + lonOffset;
+    if (d >= 190) d -= 190; else if (d >= 180) d -= 80;
+    let m = info.charCodeAt(2) - 28;
+    if (m >= 60) m -= 60;
+    const h = info.charCodeAt(3) - 28;
+    if (d > 180 || m < 0 || m >= 60 || h < 0 || h > 99) return null;
+    let lon = d + (m + h / 100) / 60;
+    if (west) lon = -lon;
+    const code = info.charCodeAt(7);
+    if (code < 33 || code > 126) return null;
+    return { lat, lon, sym: info[8] + info[7] };
+}
+
 function parsePosition(frame) {
     const colon = frame.indexOf(":");
     if (colon < 0) return null;
     let info = frame.slice(colon + 1);
+    if (info[0] === "`" || info[0] === "'") return parseMicE(frame, info);
     if (info[0] === "/" || info[0] === "@") info = info.slice(8);
     else if (info[0] === "!" || info[0] === "=") info = info.slice(1);
     else return null;
 
-    const match = info.match(/^(\d{2})(\d{2}\.\d{2})([NS]).(\d{3})(\d{2}\.\d{2})([EW])/);
+    const match = info.match(/^(\d{2})(\d{2}\.\d{2})([NS])(.)(\d{3})(\d{2}\.\d{2})([EW])(.)/);
     if (match) {
         let lat = Number(match[1]) + Number(match[2]) / 60;
-        let lon = Number(match[4]) + Number(match[5]) / 60;
+        let lon = Number(match[5]) + Number(match[6]) / 60;
         if (match[3] === "S") lat *= -1;
-        if (match[6] === "W") lon *= -1;
-        return Number.isFinite(lat) && Number.isFinite(lon) ? { lat, lon } : null;
+        if (match[7] === "W") lon *= -1;
+        return Number.isFinite(lat) && Number.isFinite(lon) ? { lat, lon, sym: match[4] + match[8] } : null;
     }
 
-    // Compressed APRS: symbol table, four base-91 latitude characters,
-    // four base-91 longitude characters, symbol code and compression type.
+    // Compressed APRS: symbol table (/ \ A-Z 0-9, or a-j = overlay digits), four base-91
+    // latitude characters, four base-91 longitude characters, symbol code and compression type.
     // The final csT compression bytes are optional on LoRa APRS beacons.
-    const compressed = info.match(/^[\/\\A-Z0-9]([!-{]{4})([!-{]{4})[!-~]/);
+    const compressed = info.match(/^([\/\\A-Za-j0-9])([!-{]{4})([!-{]{4})([!-~])/);
     if (!compressed) return null;
-    const encodedLat = base91(compressed[1]);
-    const encodedLon = base91(compressed[2]);
+    const encodedLat = base91(compressed[2]);
+    const encodedLon = base91(compressed[3]);
     if (encodedLat === null || encodedLon === null) return null;
     const lat = 90 - (encodedLat / 380926);
     const lon = -180 + (encodedLon / 190463);
-    return Number.isFinite(lat) && Number.isFinite(lon) ? { lat, lon } : null;
+    return Number.isFinite(lat) && Number.isFinite(lon) ? { lat, lon, sym: compressed[1] + compressed[4] } : null;
 }
 
 function callsign(frame) {
@@ -53,8 +93,18 @@ function callsign(frame) {
     return end > 0 ? frame.slice(0, end) : "Unknown";
 }
 
-function markerIcon(direction, source) {
+function markerIcon(direction, source, sym) {
     const markerClass = source === "APRS-IS" ? "is" : (direction === "TX" ? "tx" : "");
+    // Official APRS symbol (aprs.fi set, loaded from aprsnet.uk - no flash cost on the device) with a
+    // small badge for the packet direction/source. Falls back to the plain dot when offline.
+    if (window.AprsSymbols && sym && window.AprsSymbols.parse(sym)) {
+        return L.divIcon({
+            className: "leaflet-div-icon",
+            html: `<div class="sym-marker">${window.AprsSymbols.html(sym, { size: 30 })}<span class="sym-badge ${markerClass}"></span></div>`,
+            iconSize: [30, 30],
+            iconAnchor: [15, 15],
+        });
+    }
     return L.divIcon({
         className: "leaflet-div-icon",
         html: `<div class="map-marker ${markerClass}"></div>`,
@@ -103,8 +153,8 @@ function render(packets) {
             positioned++;
             if (!mappedCallsigns.has(station)) {
                 mappedCallsigns.add(station);
-                const marker = L.marker([position.lat, position.lon], { icon: markerIcon(direction, source) })
-                    .bindTooltip(station, { permanent: true, direction: "top", offset: [0, -8], className: "callsign-label" })
+                const marker = L.marker([position.lat, position.lon], { icon: markerIcon(direction, source, position.sym) })
+                    .bindTooltip(station, { permanent: true, direction: "top", offset: [0, -14], className: "callsign-label" })
                     .bindPopup(`<strong>${station}</strong><br>${direction} · ${packet.packetTime || ""}`);
                 marker.addTo(markerLayer);
                 row.addEventListener("click", () => {

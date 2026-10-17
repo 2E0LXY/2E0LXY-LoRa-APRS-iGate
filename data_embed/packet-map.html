@@ -56,6 +56,10 @@
         .map-marker { width:16px; height:16px; background:var(--blue); border:2px solid white; box-shadow:0 1px 4px #0007; border-radius:50%; }
         .map-marker.tx { background:var(--amber); border-radius:2px; transform:rotate(45deg); }
         .map-marker.is { background:#20c997; }
+        .sym-marker { position:relative; width:30px; height:30px; }
+        .sym-badge { position:absolute; right:-2px; bottom:-2px; width:9px; height:9px; border-radius:50%; background:var(--blue); border:1.5px solid white; box-shadow:0 1px 3px #0007; }
+        .sym-badge.tx { background:var(--amber); border-radius:2px; }
+        .sym-badge.is { background:#20c997; }
         @media (max-width:900px) {
             header { gap:16px; padding:0 14px; }
             header a:not([aria-current]) { display:none; }
@@ -108,6 +112,8 @@
 </main>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<!-- Official APRS symbol set (aprs.fi, by OH7LZB) served by aprsnet.uk; the map degrades to plain dots offline. -->
+<script async src="https://www.aprsnet.uk/symbols/aprs-symbols.js"></script>
 <script src="/packet-map.js"></script>
 </body>
 </html>
