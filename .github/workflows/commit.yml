@@ -3,7 +3,7 @@ name: Commit Test Build
 on:
     push:
         branches:
-            - '*'
+            - '**'
 
 jobs:
     build:
